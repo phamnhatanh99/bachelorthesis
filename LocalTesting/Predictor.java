@@ -1,16 +1,30 @@
 import java.sql.SQLException;
 import java.util.*;
 
-/**
- * Retrieves similarity checks from Querier and predicts joinable columns for a given table.
- */
 public class Predictor {
-    private final Querier querier;
+
+    private final Analyzer analyzer;
     private final GroundTruth groundTruth;
 
-    public Predictor() throws SQLException {
-        querier = new Querier();
+    public Predictor(String url, String user, String password) throws SQLException {
+        analyzer = new Analyzer(url, user, password);
         groundTruth = new GroundTruth();
+    }
+
+    /**
+     * Return the tables' names as list of string.
+     * @return String list containing the tables' names
+     */
+    public List<String> listTables() {
+        return analyzer.listTables();
+    }
+
+    /**
+     * Return the list of tables as a string.
+     * @return listing the tables' names
+     */
+    public String listTablesAsString() {
+        return analyzer.listTablesAsString();
     }
 
     /**
@@ -18,29 +32,31 @@ public class Predictor {
      * @param table_name Name of the table to find join partners.
      */
     public void predict(String table_name) throws SQLException {
-        Map<String, Set<String>> map = querier.compareColumnsByType(table_name);
+        Map<String, Set<String>> map = analyzer.groupColumnsByType(table_name);
         for (String name : map.keySet()) {
             predict(name, map.get(name));
         }
     }
 
     /**
-     * Prints out possible the columns that a given column can join.
-     * @param name Name of the column to predict
-     * @param similar Set of possible join candidates
+     * Prints out possible the columns that a given column can join. Columns are possibly joinable when they fulfill at least 2 conditions.
+     * @param table_and_column_name Name of the column to predict
+     * @param similar_tables_and_columns_names Set of possible join candidates
      */
-    private void predict(String name, Set<String> similar) throws SQLException {
-        Set<String> set1 = top3(querier.rankColumnByHistogramBounds(name, similar)).keySet();
-        Set<String> set2 = top3(querier.rankColumnByAvgWidth(name, similar)).keySet();
-        Set<String> set3 = top3(querier.rankColumnByMostCommonFreqs(name, similar)).keySet();
-        Map<String, Integer> count = getCount(set1, set2, set3);
+    private void predict(String table_and_column_name, Set<String> similar_tables_and_columns_names) throws SQLException {
+        Set<String> set1 = top3(analyzer.rankColumnByHistogramBounds(table_and_column_name, similar_tables_and_columns_names)).keySet();
+        Set<String> set2 = top3(analyzer.rankColumnByAvgWidth(table_and_column_name, similar_tables_and_columns_names)).keySet();
+        Set<String> set3 = top3(analyzer.rankColumnByMostCommonFreqs(table_and_column_name, similar_tables_and_columns_names)).keySet();
+        Set<String> set4 = top3(analyzer.rankColumnByColumnName(table_and_column_name, similar_tables_and_columns_names)).keySet();
+        Map<String, Integer> count = getCount(set1, set2, set3, set4);
         Set<String> result = new HashSet<>();
         for (Map.Entry<String, Integer> pair: count.entrySet()) {
-            if (pair.getValue() > 1)
+            if (pair.getValue() >= 2)
                 result.add(pair.getKey());
         }
-        System.out.println("Column " + name + " can be joined with: " + result);
-        groundTruth.check(name);
+        String column_name = table_and_column_name.split("_", 2)[1];
+        System.out.println("Column " + column_name + " can be joined with: " + result);
+        groundTruth.check(column_name);
     }
 
     /**
@@ -56,7 +72,7 @@ public class Predictor {
         for (Map.Entry<String, Double> pair : map.entrySet()) {
             if (pair.getValue() > max)
                 counter++;
-            if (counter > 3) break;
+            if (counter > 3) break; // Stop when top 3 values are found
             result.put(pair.getKey(), pair.getValue());
             max = pair.getValue();
         }
@@ -67,26 +83,19 @@ public class Predictor {
      * Helper function, counts the occurrence of the elements in each set and store the count as value in a map.
      * @return A map from the elements in the sets to its number of appearance
      */
-    private static Map<String, Integer> getCount(Set<String> set1, Set<String> set2, Set<String> set3) {
-        Map<String, Integer> count = new HashMap<>();
-        for (String s : set1) {
-            if (count.containsKey(s))
-                count.put(s, count.get(s) + 1);
-            else
-                count.put(s, 1);
+    private static Map<String, Integer> getCount(Set<String> set1, Set<String> set2, Set<String> set3, Set<String> set4) {
+        Map<String, Integer> result = new HashMap<>();
+        List<Set<String>> sets = new ArrayList<>();
+        sets.add(set1);
+        sets.add(set2);
+        sets.add(set3);
+        sets.add(set4);
+
+        for (Set<String> set : sets) {
+            for (String s : set) {
+                result.put(s, result.getOrDefault(s, 0) + 1); // Increment the count of the element
+            }
         }
-        for (String s : set2) {
-            if (count.containsKey(s))
-                count.put(s, count.get(s) + 1);
-            else
-                count.put(s, 1);
-        }
-        for (String s : set3) {
-            if (count.containsKey(s))
-                count.put(s, count.get(s) + 1);
-            else
-                count.put(s, 1);
-        }
-        return count;
+        return result;
     }
 }
