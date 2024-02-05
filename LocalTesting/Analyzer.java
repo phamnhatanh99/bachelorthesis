@@ -4,6 +4,9 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * A class that contains the methods to perform high-level analysis of the database.
+ */
 public class Analyzer {
 
     private final DatabaseObject database_object;

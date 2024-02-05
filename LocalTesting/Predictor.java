@@ -1,6 +1,9 @@
 import java.sql.SQLException;
 import java.util.*;
 
+/**
+ * A class that contain method to predict the joinable columns in a table.
+ */
 public class Predictor {
 
     private final Analyzer analyzer;
