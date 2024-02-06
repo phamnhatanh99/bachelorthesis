@@ -49,7 +49,7 @@ public class Analyzer {
             String input_column_name = input_columns.getString(4);
             String input_column_type = input_columns.getString(6);
             Set<String> similar_columns = new HashSet<>(); // Set of columns with the same data type
-            result.put(table_name + "_" + input_column_name, similar_columns);
+            result.put(table_name + "." + input_column_name, similar_columns);
             for (String table : database_object.listTables()) { // Iterate through all tables
                 ResultSet columns = database_object.getColumns(table);
                 while (columns.next()) { // Iterate through the columns in the current table
@@ -59,7 +59,7 @@ public class Analyzer {
                     String column_name = columns.getString(4);
                     String column_type = columns.getString(6);
                     if (input_column_type.equals(column_type)) // If the column type matches the input column type
-                        similar_columns.add(table_name_of_column + "_" + column_name); // Add the column to the similar columns
+                        similar_columns.add(table_name_of_column + "." + column_name); // Add the column to the similar columns
                 }
             }
         }
@@ -85,7 +85,7 @@ public class Analyzer {
 
     /**
      * Ranks the similarity of a column with similar columns according to the range of their values.
-     * Similarity is calculated by distance of the distance between lower and upper bounds.
+     * Similarity is calculated by difference of the distance between lower and upper bounds.
      * Only ranks columns of numeric types, returns empty map for other types.
      * @param table_and_column_name Name of the column (prepended with the table name)
      * @param similar_table_and_column_names Name of the columns to rank (prepended with the table name)
@@ -96,7 +96,7 @@ public class Analyzer {
         if (!DatabaseObject.isNumeric(database_object.getColumnDataType(table_and_column_name))) return result; // Return empty map if the column is not numeric
         ResultSet pg_stats = database_object.queryPgStats(); // Get the pg_stats table
         double input_bounds_distance = 0;
-        String column_name = table_and_column_name.split("_", 2)[1]; // Get the column name from the input table and column name
+        String column_name = table_and_column_name.split("\\.", 2)[1]; // Get the column name from the input table and column name
         // Calculate bound distance of the input column
         while (pg_stats.next()) { // Iterate through the rows of the pg_stats table to find the input column
             String attname = pg_stats.getString("attname");
@@ -121,7 +121,7 @@ public class Analyzer {
         for (String similar_table_and_column_name : similar_table_and_column_names) {
             pg_stats.first();
             pg_stats.previous(); // Move the cursor to the first row
-            String similar_column_name = similar_table_and_column_name.split("_", 2)[1]; // Get the column name from the table and column name
+            String similar_column_name = similar_table_and_column_name.split("\\.", 2)[1]; // Get the column name from the table and column name
             while (pg_stats.next()) {
                 String attname = pg_stats.getString("attname");
                 if (attname.equals(similar_column_name)) {
@@ -135,7 +135,7 @@ public class Analyzer {
                         float upper = bounds_list.get(bounds_list.size() - 1);
                         double bounds_distance = upper - lower;
                         double similarity = Math.abs(input_bounds_distance - bounds_distance);
-                        result.put(similar_column_name, similarity);
+                        result.put(similar_table_and_column_name, similarity);
                     } catch (NullPointerException ignored) {}
                 }
             }
@@ -154,7 +154,7 @@ public class Analyzer {
         Map<String, Double> result = new HashMap<>();
         ResultSet pg_stats = database_object.queryPgStats();
         int input_avg_width = 0;
-        String column_name = table_and_column_name.split("_", 2)[1];
+        String column_name = table_and_column_name.split("\\.", 2)[1]; // Get the column name from the input table and column name
         // Find the avg_width of the input column
         while (pg_stats.next()) {
             String attname = pg_stats.getString("attname");
@@ -164,16 +164,16 @@ public class Analyzer {
             }
         }
         // Calculate the avg_width similarity of the input column with other similar columns
-        for (String similar_name : similar_table_and_column_names) {
+        for (String similar_table_and_column_name : similar_table_and_column_names) {
             pg_stats.first();
             pg_stats.previous();
-            String similar_column_name = similar_name.split("_", 2)[1];
+            String similar_column_name = similar_table_and_column_name.split("\\.", 2)[1];
             while (pg_stats.next()) {
                 String attname = pg_stats.getString("attname");
                 if (attname.equals(similar_column_name)) {
                     int avg_width = pg_stats.getInt("avg_width");
                     double similarity = Math.abs(input_avg_width - avg_width);
-                    result.put(similar_column_name, similarity);
+                    result.put(similar_table_and_column_name, similarity);
                 }
             }
         }
@@ -191,7 +191,7 @@ public class Analyzer {
         Map<String, Double> result = new HashMap<>();
         ResultSet pg_stats = database_object.queryPgStats();
         Set<Float> input_most_common_freqs_set = new HashSet<>();
-        String column_name = table_and_column_name.split("_", 2)[1];
+        String column_name = table_and_column_name.split("\\.", 2)[1];
         // Find the most_common_freqs of the input column
         while (pg_stats.next()) {
             String attname = pg_stats.getString("attname");
@@ -210,7 +210,7 @@ public class Analyzer {
         for (String similar_table_and_column_name : similar_table_and_column_names) {
             pg_stats.first();
             pg_stats.previous();
-            String similar_column_name = similar_table_and_column_name.split("_", 2)[1];
+            String similar_column_name = similar_table_and_column_name.split("\\.", 2)[1];
             while (pg_stats.next()) {
                 String attname = pg_stats.getString("attname");
                 if (attname.equals(similar_column_name)) {
@@ -225,7 +225,7 @@ public class Analyzer {
                         if (!union.isEmpty()) {
                             double similarity = ((double) intersection.size()) / union.size();
                             if (similarity != 0)
-                                result.put(similar_column_name, - similarity);
+                                result.put(similar_table_and_column_name, - similarity);
                         }
                     }
                     catch (NullPointerException ignored) {}
@@ -244,9 +244,9 @@ public class Analyzer {
      */
     public Map<String, Double> rankColumnByColumnName(String table_and_column_name, Set<String> similar_table_and_column_names) {
         Map<String, Double> result = new HashMap<>();
-        String column_name = table_and_column_name.split("_", 2)[1]; // Get the column name from the input table and column name
+        String column_name = table_and_column_name.split("\\.", 2)[1]; // Get the column name from the input table and column name
         for (String similar_table_and_column_name : similar_table_and_column_names) {
-            String similar_column_name = similar_table_and_column_name.split("_", 2)[1];
+            String similar_column_name = similar_table_and_column_name.split("\\.", 2)[1];
             Set<Character> column_name_set = column_name.chars().mapToObj(c -> (char) c).collect(Collectors.toSet());
             Set<Character> similar_column_name_set = similar_column_name.chars().mapToObj(c -> (char) c).collect(Collectors.toSet());
             Set<Character> intersection = new HashSet<>(column_name_set);
@@ -256,7 +256,7 @@ public class Analyzer {
             if (!union.isEmpty()) {
                 double similarity = ((double) intersection.size()) / union.size();
                 if (similarity != 0)
-                    result.put(similar_column_name, - similarity);
+                    result.put(similar_table_and_column_name, - similarity);
             }
         }
         return sortMapByValue(result);

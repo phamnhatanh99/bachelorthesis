@@ -7,11 +7,9 @@ import java.util.*;
 public class Predictor {
 
     private final Analyzer analyzer;
-    private final GroundTruth groundTruth;
 
     public Predictor(String url, String user, String password) throws SQLException {
         analyzer = new Analyzer(url, user, password);
-        groundTruth = new GroundTruth();
     }
 
     /**
@@ -54,12 +52,12 @@ public class Predictor {
         Map<String, Integer> count = getCount(set1, set2, set3, set4);
         Set<String> result = new HashSet<>();
         for (Map.Entry<String, Integer> pair: count.entrySet()) {
-            if (pair.getValue() >= 2)
+            if (pair.getValue() >= 3)
                 result.add(pair.getKey());
         }
-        String column_name = table_and_column_name.split("_", 2)[1];
-        System.out.println("Column " + column_name + " can be joined with: " + result);
-        groundTruth.check(column_name);
+        System.out.println("Column " + table_and_column_name + " can be joined with: " + result + "\n");
+//        GroundTruth groundTruth = new GroundTruth();
+//        groundTruth.check(column_name);
     }
 
     /**

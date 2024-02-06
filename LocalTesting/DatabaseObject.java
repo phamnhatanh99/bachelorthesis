@@ -99,11 +99,11 @@ public class DatabaseObject {
 
     /**
      * Returns the datatype of the given column from the given table.
-     * @param table_name_and_column_name Name of the table joined with the name of the column by an underscore
+     * @param table_name_and_column_name Name of the table joined with the name of the column by a dot
      * @return The column's datatype from java.sql.Types
      */
     public int getColumnDataType(String table_name_and_column_name) throws SQLException {
-        String[] split = table_name_and_column_name.split("_", 2);
+        String[] split = table_name_and_column_name.split("\\.", 2);
         String table_name = split[0];
         String column_name = split[1];
         ResultSet columns = getColumns(table_name);
