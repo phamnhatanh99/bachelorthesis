@@ -1,32 +1,27 @@
+import org.postgresql.util.PSQLException;
+
 import java.sql.SQLException;
-import java.util.Scanner;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 public class Main {
     public static void main(String[] args) throws SQLException {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Select a database to predict the join partners (tpch, imdb). Type anything else to quit.");
-        String line = scanner.nextLine();
-        String url = "jdbc:postgresql://localhost:5432/";
-        String database;
-        switch (line) {
-            case "tpch":
-                database = "tpch";
-                break;
-            case "imdb":
-                database = "imdb";
-                break;
-            default:
-                return;
+        Instant start = Instant.now();
+        DatabaseObject database_object = new DatabaseObject("jdbc:postgresql://localhost:5432/lookup_prediction", "postgres", "1234");
+        Analyzer analyzer = new Analyzer("jdbc:postgresql://localhost:5432/pagila", "postgres", "1234");
+        Map<Map.Entry<Pair, Pair>, List<Double>> result = analyzer.analyze();
+        for (Map.Entry<Map.Entry<Pair, Pair>, List<Double>> entry : result.entrySet()) {
+            try {
+                database_object.insertPrediction(entry.getKey().getKey(), entry.getKey().getValue(), entry.getValue().get(0), entry.getValue().get(1), entry.getValue().get(2), entry.getValue().get(3), entry.getValue().get(4));
+            } catch (PSQLException e) {
+                System.out.println("Error: " + e.getMessage());
+                System.out.println(entry.getKey().getKey().toString() + " - " + entry.getKey().getValue().toString() + " - " + entry.getValue().toString());
+            }
         }
-        Predictor predictor = new Predictor(url + database, "postgres", "1234");
-        while (true) {
-            System.out.println("\nChoose a table or type 'exit' to quit: " + predictor.listTablesAsString());
-            line = scanner.nextLine();
-            if (line.equals("exit")) break;
-            if (!predictor.listTables().contains(line)) continue;
-            predictor.predict(line);
-        }
-        scanner.close();
+        Instant finish = Instant.now();
+        System.out.println("Prediction table updated. Time elapsed in seconds: " + Duration.between(start, finish).toSeconds());
     }
 }
 

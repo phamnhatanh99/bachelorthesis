@@ -1,8 +1,6 @@
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A class that contains all the methods to interact with the database.
@@ -39,18 +37,41 @@ public class DatabaseObject {
      */
     public static boolean isNumeric(int data_type) {
         return switch (data_type) {
-            case Types.BIGINT, Types.DECIMAL, Types.DOUBLE, Types.FLOAT, Types.INTEGER, Types.NUMERIC, Types.REAL, Types.SMALLINT, Types.TINYINT -> true;
+            case Types.BIGINT, Types.DECIMAL, Types.DOUBLE, Types.FLOAT, Types.INTEGER, Types.NUMERIC, Types.REAL, Types.SMALLINT, Types.TINYINT, Types.BIT, Types.BOOLEAN -> true;
             default -> false;
         };
     }
 
-    /**
-     * Returns the statistics from pg_stats of all tables.
-     * @return A ResultSet that contains statistics of all tables
-     */
-    public ResultSet queryPgStats() throws SQLException {
+    public static boolean isInteger(int data_type) {
+        return switch (data_type) {
+            case Types.BIGINT, Types.INTEGER, Types.SMALLINT, Types.TINYINT, Types.BIT, Types.BOOLEAN -> true;
+            default -> false;
+        };
+    }
+
+    public static boolean isDouble(int data_type) {
+        return switch (data_type) {
+            case Types.DECIMAL, Types.DOUBLE, Types.FLOAT, Types.NUMERIC, Types.REAL -> true;
+            default -> false;
+        };
+    }
+
+    public static boolean isDateOrTime(int data_type) {
+        return data_type == Types.DATE || data_type == Types.TIME || data_type == Types.TIMESTAMP;
+    }
+
+    public static boolean isString(int data_type) {
+        return switch (data_type) {
+            case Types.CHAR, Types.VARCHAR, Types.LONGVARCHAR, Types.NCHAR, Types.NVARCHAR, Types.LONGNVARCHAR -> true;
+            default -> false;
+        };
+    }
+
+    public ResultSet queryPgStatsColumn(Pair table_and_column_name, String pg_stats_column) throws SQLException {
         Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        String query = "SELECT t.* FROM pg_catalog.pg_stats t WHERE schemaname = 'public' ORDER BY tablename";
+        String table_name = table_and_column_name.table();
+        String column_name = table_and_column_name.column();
+        String query = "SELECT " + pg_stats_column + " FROM pg_catalog.pg_stats WHERE tablename = '" + table_name + "' AND attname = '" + column_name + "'";
         return statement.executeQuery(query);
     }
 
@@ -71,20 +92,16 @@ public class DatabaseObject {
     }
 
     /**
-     * Returns the cardinalities of all tables.
-     * @return Mapping from table names to their cardinalities
+     * Returns the cardinality of a given table.
+     * @param table_name Name of the table
+     * @return The cardinality of the table
      */
-    public Map<String, Integer> getTablesCardinality() throws SQLException {
-        Map<String, Integer> result = new HashMap<>();
-        for (String name : listTables()) {
-            Statement statement = connection.createStatement();
-            String query = "SELECT reltuples FROM pg_class WHERE relname = '" + name + "'";
-            ResultSet resultSet = statement.executeQuery(query);
-            resultSet.next(); // Move the cursor to the first row
-            Integer cardinality = resultSet.getInt("reltuples");
-            result.put(name, cardinality);
-        }
-        return result;
+    public int getTableCardinality(String table_name) throws SQLException {
+        Statement statement = connection.createStatement();
+        String query = "SELECT reltuples FROM pg_class WHERE relname = '" + table_name + "'";
+        ResultSet resultSet = statement.executeQuery(query);
+        resultSet.next(); // Move the cursor to the first row
+        return resultSet.getInt("reltuples");
     }
 
     /**
@@ -102,10 +119,9 @@ public class DatabaseObject {
      * @param table_name_and_column_name Name of the table joined with the name of the column by a dot
      * @return The column's datatype from java.sql.Types
      */
-    public int getColumnDataType(String table_name_and_column_name) throws SQLException {
-        String[] split = table_name_and_column_name.split("\\.", 2);
-        String table_name = split[0];
-        String column_name = split[1];
+    public int getColumnDataType(Pair table_name_and_column_name) throws SQLException {
+        String table_name = table_name_and_column_name.table();
+        String column_name = table_name_and_column_name.column();
         ResultSet columns = getColumns(table_name);
         int type = Types.NULL;
         while (columns.next()) {
@@ -116,5 +132,19 @@ public class DatabaseObject {
             }
         }
         return type;
+    }
+
+    public ResultSet getColumnData(Pair table_and_column_name) throws SQLException {
+        Statement statement = connection.createStatement();
+        String table_name = table_and_column_name.table();
+        String column_name = table_and_column_name.column();
+        String query = "SELECT " + column_name + " FROM " + table_name;
+        return statement.executeQuery(query);
+    }
+
+    public void insertPrediction(Pair source, Pair target, double table_name, double column_name, double avg_width, double most_common_vals, double jaccard) throws SQLException {
+        Statement statement = connection.createStatement();
+        String query = "INSERT INTO lookup_prediction (source_table, source_column, target_table, target_column, table_name, column_name, avg_width, most_common_vals, jaccard_estimate) VALUES ('" + source.table() + "', '" + source.column() + "', '" + target.table() + "', '" + target.column() + "', " + table_name + ", " + column_name + ", " + avg_width + ", " + most_common_vals + ", " + jaccard + ") ON CONFLICT (source_table, source_column, target_table, target_column) DO UPDATE SET table_name = " + table_name + ", column_name = " + column_name + ", avg_width = " + avg_width + ", most_common_vals = " + most_common_vals + ", jaccard_estimate = " + jaccard;
+        statement.execute(query);
     }
 }
