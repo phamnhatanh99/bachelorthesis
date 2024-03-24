@@ -118,6 +118,13 @@ public class FeatureCompare {
         return (double) intersection.size() / (shingles1.size() + shingles2.size() - intersection.size());
     }
 
+    public double dataType(Pair source, Pair target) throws SQLException {
+        int sourceType = database_object.getColumnDataType(source);
+        int targetType = database_object.getColumnDataType(target);
+        if (sourceType == targetType) return 1.0;
+        return 0.0;
+    }
+
     public double avgWidth(Pair source, Pair target) throws SQLException {
         ResultSet source_avg_width_result = database_object.queryPgStatsColumn(source, "avg_width");
         ResultSet target_avg_width_result = database_object.queryPgStatsColumn(target, "avg_width");
