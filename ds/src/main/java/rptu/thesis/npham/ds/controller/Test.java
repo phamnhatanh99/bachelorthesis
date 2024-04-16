@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import rptu.thesis.npham.ds.model.Metadata;
 import rptu.thesis.npham.ds.repository.MetadataRepository;
-import rptu.thesis.npham.ds.service.Lazo;
 import rptu.thesis.npham.ds.service.Profiler;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.io.ColumnIndexOutOfBoundsException;
@@ -18,13 +17,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 @RestController
 public class Test {
     private final MetadataRepository metadata_repository;
 
     @Autowired
-    public Test(MetadataRepository metadata_repository, Lazo lazo) {
+    public Test(MetadataRepository metadata_repository) {
         this.metadata_repository = metadata_repository;
     }
 
@@ -33,7 +33,8 @@ public class Test {
         String folderPath = "C:\\Users\\alexa\\Desktop\\testbedXS\\datasets";
         List<Metadata> all = new ArrayList<>();
         try {
-            List<Path> files = Files.list(Paths.get(folderPath)).toList();
+            Stream<Path> paths = Files.list(Paths.get(folderPath));
+            List<Path> files = paths.toList();
             for (Path file: files) {
                 System.out.println("Reading " + file.toString());
                 Table table;
@@ -45,6 +46,7 @@ public class Test {
                 List<Metadata> metadata_list = Profiler.profile(table);
                 all.addAll(metadata_list);
             }
+            paths.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
