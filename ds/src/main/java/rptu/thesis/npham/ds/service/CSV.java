@@ -12,7 +12,7 @@ import java.util.*;
 
 @Service
 public class CSV {
-    public static Table getTable(MultipartFile file, List<String> column_types) {
+    public static Table getTable(MultipartFile file, List<String> column_types, String separator) {
         try {
             InputStream input_stream = file.getInputStream();
             String file_name = trimCSVSuffix(Objects.requireNonNull(file.getOriginalFilename()));
@@ -20,8 +20,10 @@ public class CSV {
             return Table.read().
                     usingOptions(CsvReadOptions.
                             builder(input_stream).
+                            separator(separator.charAt(0)).
                             columnTypes(tablesaw_type).
-                            tableName(file_name));
+                            tableName(file_name).
+                            maxCharsPerColumn(100000));
         } catch (IOException e) {
             System.out.println(Arrays.toString(e.getStackTrace()));
             return null;
@@ -46,9 +48,6 @@ public class CSV {
                 case "text" -> result[i] = ColumnType.TEXT;
                 case "integer" -> result[i] = ColumnType.INTEGER;
                 case "double" -> result[i] = ColumnType.DOUBLE;
-                case "date" -> result[i] = ColumnType.LOCAL_DATE;
-                case "datetime" -> result[i] = ColumnType.LOCAL_DATE_TIME;
-                case "time" -> result[i] = ColumnType.LOCAL_TIME;
             }
         }
         return result;

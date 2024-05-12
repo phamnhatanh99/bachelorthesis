@@ -6,14 +6,16 @@ import java.util.List;
 
 public class MetadataForm {
     private MultipartFile file;
-    private List<String> columnsTypes;
+    private String separator;
+    private List<String> columns_types;
 
     public MetadataForm() {
     }
 
-    public MetadataForm(MultipartFile file, List<String> columnsTypes) {
+    public MetadataForm(MultipartFile file, String separator, List<String> columnsTypes) {
         this.file = file;
-        this.columnsTypes = columnsTypes;
+        this.separator = separator;
+        this.columns_types = columnsTypes;
     }
 
     public MultipartFile getFile() {
@@ -25,10 +27,18 @@ public class MetadataForm {
     }
 
     public List<String> getColumnsTypes() {
-        return columnsTypes;
+        return columns_types;
     }
 
-    public void setColumnsTypes(List<String> columnsTypes) {
-        this.columnsTypes = columnsTypes;
+    public void setColumnsTypes(List<String> columns_types) {
+        this.columns_types = columns_types;
+    }
+
+    public String getSeparator() {
+        return separator;
+    }
+
+    public void setSeparator(String separator) {
+        this.separator = separator;
     }
 }

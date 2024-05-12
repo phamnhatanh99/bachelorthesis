@@ -57,6 +57,24 @@
 			<artifactId>stream</artifactId>
 			<version>LATEST</version>
 		</dependency>
+		<dependency>
+			<groupId>edu.uniba.di.lacam.kdde</groupId>
+			<artifactId>ws4j</artifactId>
+			<version>1.0.2</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/src/main/resources/lib/ws4j-1.0.2-jar-with-dependencies.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>edu.stanford.nlp</groupId>
+			<artifactId>stanford-corenlp</artifactId>
+			<version>4.5.5</version>
+		</dependency>
+		<dependency>
+			<groupId>edu.stanford.nlp</groupId>
+			<artifactId>stanford-corenlp</artifactId>
+			<version>4.5.5</version>
+			<classifier>models</classifier>
+		</dependency>
 	</dependencies>
 
 	<build>

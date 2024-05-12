@@ -4,6 +4,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import java.util.List;
+
 @Document(collection = "metadata")
 public class Metadata {
 
@@ -18,24 +20,10 @@ public class Metadata {
     @Field
     private String type;
     @Field
-    private long cardinality;
-    @Field
-    private long[] sketch;
-    @Field
-    private String source;
+    private String uri;
 
     public Metadata() {
 
-    }
-
-    public Metadata(String table_name, String column_name, String description, String type, long cardinality, long[] sketch, String source) {
-        this.table_name = table_name;
-        this.column_name = column_name;
-        this.description = description;
-        this.type = type;
-        this.cardinality = cardinality;
-        this.sketch = sketch;
-        this.source = source;
     }
 
     public String getId() {
@@ -46,19 +34,19 @@ public class Metadata {
         this.id = id;
     }
 
-    public String getTable_name() {
+    public String getTableName() {
         return table_name;
     }
 
-    public void setTable_name(String table_name) {
+    public void setTableName(String table_name) {
         this.table_name = table_name;
     }
 
-    public String getColumn_name() {
+    public String getColumnName() {
         return column_name;
     }
 
-    public void setColumn_name(String column_name) {
+    public void setColumnName(String column_name) {
         this.column_name = column_name;
     }
 
@@ -78,39 +66,29 @@ public class Metadata {
         this.type = type;
     }
 
-    public long getCardinality() {
-        return cardinality;
+    public String getUri() {
+        return uri;
     }
 
-    public void setCardinality(long cardinality) {
-        this.cardinality = cardinality;
-    }
-
-    public long[] getSketch() {
-        return sketch;
-    }
-
-    public void setSketch(long[] sketch) {
-        this.sketch = sketch;
-    }
-
-    public String getSource() {
-        return source;
-    }
-
-    public void setSource(String source) {
-        this.source = source;
+    public void setUri(String uri) {
+        this.uri = uri;
     }
 
     @Override
     public String toString() {
-        return "Metadata [" +
-                "id='" + id + '\'' +
-                ", table_name='" + table_name + '\'' +
-                ", column_name='" + column_name + '\'' +
-                ", type='" + type + '\'' +
-                ", cardinality=" + cardinality +
-                ", sketch=" + (sketch != null ? "Present" : "Empty") +
-                ']';
+        return table_name + " - " + column_name;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Metadata metadata)) return false;
+        return this.id.equals(metadata.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
 }
