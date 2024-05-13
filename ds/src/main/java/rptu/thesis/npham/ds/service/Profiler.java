@@ -63,6 +63,10 @@ public class Profiler {
     }
 
     // TODO: maybe optimize to read the column only once and create all sketches at once
+
+    /**
+     * Creates sketches for a column and store them in the index.
+     */
     private Sketches createSketches(String id, Column<?> column, String type) {
         LazoSketch lazo_column_sketch = lazo.createSketch(column);
         String column_sketch_type = Constants.STRINGY_TYPES.contains(type) ? Constants.STRING_SKETCH : Constants.NUMERIC_SKETCH;
@@ -76,6 +80,9 @@ public class Profiler {
         sketches.setId(id);
         sketches.setSketches(new HashSet<>(Arrays.asList(column_sketch, format_sketch)));
 
+        lazo.updateIndex(sketches);
+
         return sketches;
     }
+
 }

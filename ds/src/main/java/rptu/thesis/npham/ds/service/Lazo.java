@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Service
 public class Lazo {
     private static final int N_PERMUTATIONS = 128;
-    private static final float THRESHOLD = 0f;
+    private static final float THRESHOLD = 0.1f;
     private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(false);
 
     private LazoIndex string_index;
@@ -96,6 +96,18 @@ public class Lazo {
         }
     }
 
+    public void clearIndexes() {
+        lock.writeLock().lock();
+        try {
+            string_index = new LazoIndex(N_PERMUTATIONS);
+            numeric_index = new LazoIndex(N_PERMUTATIONS);
+            frequency_index = new LazoIndex(N_PERMUTATIONS);
+            format_index = new LazoIndex(N_PERMUTATIONS);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     public void removeSketchFromIndex(String id) {
         lock.writeLock().lock();
         try {
@@ -146,7 +158,6 @@ public class Lazo {
                 .orElseThrow(() -> new RuntimeException("No sketch of type " + sketch_type + " found"));
     }
 
-    // TODO: should return all 3 js, jcx and jcy
     private Map<Metadata, Jaccard> queryContainment(LazoIndex index, LazoSketch sketch, String query_id) {
         Map<Metadata, Jaccard> result = new HashMap<>();
         Set<LazoCandidate> candidates;

@@ -8,6 +8,7 @@ import rptu.thesis.npham.ds.model.Metadata;
 import rptu.thesis.npham.ds.model.Score;
 import rptu.thesis.npham.ds.model.SimilarityScores;
 import rptu.thesis.npham.ds.repository.MetadataRepo;
+import rptu.thesis.npham.ds.repository.SimilarityScoresRepo;
 import rptu.thesis.npham.ds.service.Lazo;
 import rptu.thesis.npham.ds.service.Similarity;
 import rptu.thesis.npham.ds.utils.Jaccard;
@@ -20,12 +21,14 @@ import java.util.stream.Collectors;
 public class QueryController {
 
     private final MetadataRepo metadata_repository;
+    private final SimilarityScoresRepo similarity_scores_repository;
     private final Lazo lazo;
     private final Similarity similarity;
 
     @Autowired
-    public QueryController(MetadataRepo metadata_repository, Lazo lazo, Similarity similarity) {
+    public QueryController(MetadataRepo metadata_repository, SimilarityScoresRepo similarity_scores_repository ,Lazo lazo, Similarity similarity) {
         this.metadata_repository = metadata_repository;
+        this.similarity_scores_repository = similarity_scores_repository;
         this.lazo = lazo;
         this.similarity = similarity;
     }
@@ -69,6 +72,24 @@ public class QueryController {
                     double avg = e.getValue().average();
                     if (avg > 0.3)
                         System.out.println(table_name_ + " - " + column_name_ + " - " + e.getValue().average());
+                });
+    }
+
+    @GetMapping("id2/{id}")
+    public void queryByID2(@PathVariable String id) {
+        Optional<SimilarityScores> query = similarity_scores_repository.findById(id);
+        if (query.isEmpty()) throw new RuntimeException("ID does not exists");
+        SimilarityScores scores = query.get();
+
+        scores.getScoreMap().entrySet().stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .forEach(e -> {
+                    Metadata m = metadata_repository.findById(e.getKey()).get();
+                    String table_name = m.getTableName();
+                    String column_name = m.getColumnName();
+                    double avg = e.getValue().average();
+                    if (avg > 0.3)
+                        System.out.println(table_name + " - " + column_name + " - " + e.getValue().average());
                 });
     }
 }
