@@ -12,18 +12,19 @@ import rptu.thesis.npham.ds.model.Sketches;
 import rptu.thesis.npham.ds.repository.MetadataRepo;
 import rptu.thesis.npham.ds.repository.SimilarityScoresRepo;
 import rptu.thesis.npham.ds.repository.SketchesRepo;
-import rptu.thesis.npham.ds.service.CSV;
+import rptu.thesis.npham.ds.service.CSVReader;
 import rptu.thesis.npham.ds.service.Lazo;
 import rptu.thesis.npham.ds.service.Profiler;
 import rptu.thesis.npham.ds.service.Similarity;
 import rptu.thesis.npham.ds.utils.Jaccard;
 import rptu.thesis.npham.ds.utils.Pair;
-import rptu.thesis.npham.ds.utils.StringUtils;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.io.ColumnIndexOutOfBoundsException;
 import tech.tablesaw.io.csv.CsvReadOptions;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,7 +54,7 @@ public class Test {
 
     @GetMapping("import")
     public String importAll() {
-        String folderPath = "C:\\Users\\alexa\\Desktop\\testbedXS\\datasets";
+        String folderPath = "C:\\Users\\alexa\\Desktop\\Evaluation\\nextiajd\\testbedXS\\datasets";
         List<Pair<Metadata, Sketches>> all = new ArrayList<>();
         try {
             Stream<Path> paths = Files.list(Paths.get(folderPath));
@@ -64,10 +65,11 @@ public class Test {
                 try {
                     table = readTable(file);
                 } catch (ArrayIndexOutOfBoundsException | TextParsingException e2) {
+                    System.out.println("Error reading file");
                     continue;
                 }
-                table.setName(CSV.trimCSVSuffix(table.name()));
-                List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table);
+                table.setName(CSVReader.trimCSVSuffix(table.name()));
+                List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table, InetAddress.getLocalHost().getHostAddress());
                 all.addAll(metadata_list);
             }
             paths.close();
@@ -82,11 +84,12 @@ public class Test {
         });
         metadata_repository.saveAll(metadatas);
         sketches_repository.saveAll(sketches);
+        metadatas.forEach(m -> storeSimilarityScores(m.getId()));
         return "Import method finished";
     }
 
     @GetMapping("import/{filename}")
-    public String importFile(@PathVariable String filename) {
+    public String importFile(@PathVariable String filename) throws UnknownHostException {
         String folderPath = "C:\\Users\\alexa\\Desktop\\testbedXS\\datasets";
         String filePath = folderPath + "\\" + filename;
         Table table;
@@ -95,8 +98,8 @@ public class Test {
         } catch (ArrayIndexOutOfBoundsException | TextParsingException e2) {
             return "Error reading file";
         }
-        table.setName(CSV.trimCSVSuffix(table.name()));
-        List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table);
+        table.setName(CSVReader.trimCSVSuffix(table.name()));
+        List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table, InetAddress.getLocalHost().getHostAddress());
         List<Pair<Metadata, Sketches>> all = new ArrayList<>(metadata_list);
         List<Metadata> metadatas = new ArrayList<>();
         List<Sketches> sketches = new ArrayList<>();
@@ -141,12 +144,12 @@ public class Test {
             double column_name_sim = column_name_similarity.get(m);
             double containment_sim = containment_similarity.get(m).jcx();
             double format_sim = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcx();
-            scores.getScoreMap().put(m.getId(), new Score(table_name_sim, column_name_sim, containment_sim, format_sim, 0));
-            scores_list.add(candidate_scores);
+            scores.getScoreMap().put(m.getId(), new Score(table_name_sim, column_name_sim, containment_sim, format_sim));
+            scores_list.add(scores);
 
             double containment_sim_candidate = containment_similarity.get(m).jcy();
             double format_sim_candidate = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcy();
-            candidate_scores.getScoreMap().put(metadata.getId(), new Score(table_name_sim, column_name_sim, containment_sim_candidate, format_sim_candidate, 0));
+            candidate_scores.getScoreMap().put(metadata.getId(), new Score(table_name_sim, column_name_sim, containment_sim_candidate, format_sim_candidate));
             scores_list.add(candidate_scores);
         }
 
@@ -155,10 +158,10 @@ public class Test {
 
     private Table readTable(Path path) throws ArrayIndexOutOfBoundsException, TextParsingException {
         Table table;
-        CsvReadOptions.Builder options = CsvReadOptions.builder(path.toString()).maxCharsPerColumn(8192);
+        CsvReadOptions.Builder options = CsvReadOptions.builder(path.toString()).maxCharsPerColumn(32767);
         try {
             table = Table.read().csv(options.separator(',').build());
-        } catch (ColumnIndexOutOfBoundsException | IllegalArgumentException e) {
+        } catch (ColumnIndexOutOfBoundsException | IllegalArgumentException | IndexOutOfBoundsException e) {
             table = Table.read().csv(options.separator(';').build());
         }
         return table;
@@ -177,6 +180,7 @@ public class Test {
     public String delete(@PathVariable String id) {
         metadata_repository.deleteById(id);
         sketches_repository.deleteById(id);
+        similarity_scores_repository.deleteById(id);
         lazo.removeSketchFromIndex(id);
         return "Deleted " + id;
     }

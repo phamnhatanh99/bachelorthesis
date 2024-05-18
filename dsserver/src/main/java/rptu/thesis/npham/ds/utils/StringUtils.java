@@ -41,24 +41,14 @@ public class StringUtils {
 
     private static final List<String> STOP_WORDS = new ArrayList<>(STOP_WORDS_LIST);
 
-    private static final Pattern SYMBOL_PATTERN = Pattern.compile("@\\p{Sc}");
-    private static final Pattern PUNCTUATION_PATTERN = Pattern.compile("[!\"#%&'()*+,\\-./:;<=>?\\[\\\\\\]^_`{|}~]");
-
-    private static final Pattern LOWERCASE = Pattern.compile("[a-z]([a-z\\-])*");
-    private static final Pattern UPPERCASE = Pattern.compile("[A-Z]([A-Z\\-.])*");
-    private static final Pattern CAPITALIZED = Pattern.compile("[A-Z][a-z]([a-z\\-])*");
-
-    private static final Pattern POS_DECIMAL = Pattern.compile("\\+?[0-9]+(,[0-9]+)*\\.[0-9]+");
-    private static final Pattern NEG_DECIMAL = Pattern.compile("-[0-9]+(,[0-9]+)*\\.[0-9]+");
-    private static final Pattern POS_INT = Pattern.compile("\\+?[0-9]+(,[0-9]+)*");
-    private static final Pattern NEG_INT = Pattern.compile("-[0-9]+(,[0-9]+)*");
-
-    private static final Pattern PUNCTUATION = Pattern.compile("[" + PUNCTUATION_PATTERN + "]+");
-    private static final Pattern SYMBOLS = Pattern.compile("[" + SYMBOL_PATTERN + "]+", Pattern.UNICODE_CHARACTER_CLASS);
-    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
-
-    static final Pattern ALPHA_NUM = Pattern.compile("(?:[0-9]+[a-zA-Z]|[a-zA-Z]+[0-9])[a-zA-Z0-9]*");
-    static final Pattern NUM_SYMBOL = Pattern.compile("(?=.*[0-9,.])" + "(?=.*[" + SYMBOL_PATTERN + "]+)" + "([0-9" + SYMBOL_PATTERN + "]+)", Pattern.UNICODE_CHARACTER_CLASS);
+    private static final Pattern ALPHANUMERIC = Pattern.compile("^(?:[0-9]+[a-zA-Z]|[a-zA-Z]+[0-9])[a-zA-Z0-9]*");;
+    private static final Pattern CAPITALIZED = Pattern.compile("^[A-Z][a-z]+");
+    private static final Pattern UPPERCASE = Pattern.compile("^[A-Z]+");
+    private static final Pattern LOWERCASE = Pattern.compile("^[a-z]+");
+    private static final Pattern NUMBER = Pattern.compile("^[0-9]+");
+    private static final Pattern PUNCTUATION = Pattern.compile("^\\p{Punct}+");
+    private static final Pattern WHITESPACE = Pattern.compile("^\\s+");
+    private static final Pattern OTHER = Pattern.compile(".");
 
     public static String normalize(String s) {
         return s.trim().toLowerCase().replace(" ", "_");
@@ -75,88 +65,65 @@ public class StringUtils {
         return new ArrayList<>(res);
     }
 
+    public static Set<String> shingle(String s, int k) {
+        if (k < 1) k = 4;
+        Set<String> res = new HashSet<>();
+        for (int i = 0; i < s.length() - k + 1; i++) {
+            res.add(s.substring(i, i + k));
+        }
+        return res;
+    }
+
     public static Set<String> generateFormatPatterns(Iterable<String> column) {
         Set<String> result = new HashSet<>();
         for (String value : column) {
             if (value != null && !value.trim().isEmpty()) {
-                String formattedValue = value.replaceAll("\n", " ").trim();
-                String tokenizedValue = fdTokenize(formattedValue);
-                result.add(toRegEx(tokenizedValue));
+                String tokenizedValue = fdTokenize(value.replaceAll("\n", " ").trim());
+                result.add(getRegExString(tokenizedValue));
             }
         }
         return result;
     }
 
     /**
-     * Taken from <a href="https://doi.org/10.1109/ICDE48307.2020.00067">Dataset discovery in data lakes</a>
+     * Adapted from <a href="https://doi.org/10.1109/ICDE48307.2020.00067">Dataset discovery in data lakes</a>
      */
     private static String fdTokenize(String str) {
         StringBuilder result = new StringBuilder();
         while (!str.isEmpty()) {
+            Matcher a = ALPHANUMERIC.matcher(str);
             Matcher c = CAPITALIZED.matcher(str);
             Matcher u = UPPERCASE.matcher(str);
             Matcher l = LOWERCASE.matcher(str);
-
-            Matcher d = POS_DECIMAL.matcher(str);
-            Matcher e = NEG_DECIMAL.matcher(str);
-            Matcher i = POS_INT.matcher(str);
-            Matcher j = NEG_INT.matcher(str);
-
+            Matcher n = NUMBER.matcher(str);
             Matcher p = PUNCTUATION.matcher(str);
-            Matcher s = SYMBOLS.matcher(str);
             Matcher w = WHITESPACE.matcher(str);
-
-            Matcher a = ALPHA_NUM.matcher(str);
-            Matcher q = NUM_SYMBOL.matcher(str);
+            Matcher o = OTHER.matcher(str);
 
             if (a.find()) {
-                String tok = a.group();
                 result.append("a");
-                str = str.substring(tok.length());
-            } else if (d.find()) {
-                String tok = d.group();
-                result.append("d");
-                str = str.substring(tok.length());
-            } else if (e.find()) {
-                String tok = e.group();
-                result.append("e");
-                str = str.substring(tok.length());
-            } else if (i.find()) {
-                String tok = i.group();
-                result.append("i");
-                str = str.substring(tok.length());
-            } else if (j.find()) {
-                String tok = j.group();
-                result.append("j");
-                str = str.substring(tok.length());
-            } else if (q.find()) {
-                String tok = q.group();
-                result.append("q");
-                str = str.substring(tok.length());
+                str = str.substring(a.group().length());
             } else if (c.find()) {
-                String tok = c.group();
                 result.append("c");
-                str = str.substring(tok.length());
+                str = str.substring(c.group().length());
             } else if (u.find()) {
-                String tok = u.group();
                 result.append("u");
-                str = str.substring(tok.length());
+                str = str.substring(u.group().length());
             } else if (l.find()) {
-                String tok = l.group();
                 result.append("l");
-                str = str.substring(tok.length());
+                str = str.substring(l.group().length());
+            } else if (n.find()) {
+                result.append("n");
+                str = str.substring(n.group().length());
             } else if (p.find()) {
-                String tok = p.group();
                 result.append("p");
-                str = str.substring(tok.length());
-            } else if (s.find()) {
-                String tok = s.group();
-                result.append("s");
-                str = str.substring(tok.length());
+                str = str.substring(p.group().length());
             } else if (w.find()) {
-                String tok = w.group();
                 result.append("w");
-                str = str.substring(tok.length());
+                str = str.substring(w.group().length());
+            } else if (o.find()) {
+                result.append("o");
+                str = str.substring(o.group().length());
             } else {
                 break;
             }
@@ -164,15 +131,23 @@ public class StringUtils {
         return result.toString();
     }
 
-    private static String toRegEx(String str) {
+    private static String getRegExString(String str) {
+        if (str == null || str.isEmpty()) return str;
+
         StringBuilder result = new StringBuilder();
 
-        char prevChar = '\0'; // initialize prevChar with a non-character
+        int length = str.length();
 
-        for (char c : str.toCharArray()) {
-            if (c != prevChar)
-                result.append(c).append("+");
-            prevChar = c;
+        for (int i = 0; i < length; i++) {
+            result.append(str.charAt(i));
+            int count = 1;
+            while (i + 1 < length && str.charAt(i) == str.charAt(i + 1)) {
+                count++;
+                i++;
+            }
+            if (count > 1) {
+                result.append('+');
+            }
         }
 
         return result.toString();
