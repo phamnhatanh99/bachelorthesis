@@ -1,12 +1,12 @@
 package rptu.thesis.npham.ds.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import java.util.List;
-
 @Document(collection = "metadata")
+@CompoundIndex(name = "unique_index", def="{'table_name' : 1, 'column_name' : 1, 'type' : 1, 'size': 1, 'arity': 1}", unique = true)
 public class Metadata {
 
     @Id
@@ -16,15 +16,15 @@ public class Metadata {
     @Field
     private String column_name;
     @Field
-    private String description;
-    @Field
     private String type;
     @Field
-    private String uri;
+    private int size;
+    @Field
+    private int arity;
+    @Field
+    private String address;
 
-    public Metadata() {
-
-    }
+    public Metadata() {}
 
     public String getId() {
         return id;
@@ -50,14 +50,6 @@ public class Metadata {
         this.column_name = column_name;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     public String getType() {
         return type;
     }
@@ -66,17 +58,33 @@ public class Metadata {
         this.type = type;
     }
 
-    public String getUri() {
-        return uri;
+    public int getSize() {
+        return size;
     }
 
-    public void setUri(String uri) {
-        this.uri = uri;
+    public void setSize(int size) {
+        this.size = size;
+    }
+
+    public int getArity() {
+        return arity;
+    }
+
+    public void setArity(int arity) {
+        this.arity = arity;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     @Override
     public String toString() {
-        return table_name + " - " + column_name;
+        return table_name + " - " + column_name + " (" + id + ")";
     }
 
     @Override
@@ -90,5 +98,4 @@ public class Metadata {
     public int hashCode() {
         return id.hashCode();
     }
-
 }
