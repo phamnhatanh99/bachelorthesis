@@ -62,7 +62,7 @@ public class StringUtilsTest {
     @Test
     public void testGenerateFormatPatternsCapitalized() {
         List<String> column = new ArrayList<>();
-        column.add("123abc");
+        column.add("123 abc");
         Set<String> actual = StringUtils.generateFormatPatterns(column);
         System.out.println(actual);
     }
