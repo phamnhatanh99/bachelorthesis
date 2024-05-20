@@ -16,7 +16,6 @@ import rptu.thesis.npham.ds.utils.Jaccard;
 
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 /**
  * Lazo service class. Estimates Jaccard coefficient between two datasets. See <a href="https://doi.org/10.1109/ICDE.2019.00109">Lazo: A Cardinality-Based Method for Coupled Estimation of Jaccard Similarity and Containment</a>
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 @Service
 public class Lazo {
     private static final int N_PERMUTATIONS = 256;
-    private static final float THRESHOLD = 0.1f;
+    private static final float THRESHOLD = 0.0f;
     private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(false);
 
     private LazoIndex string_index;
@@ -188,10 +187,6 @@ public class Lazo {
             result.put(metadata, jaccard);
         }
 
-        return result.entrySet()
-                .stream()
-                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
+        return result;
     }
 }

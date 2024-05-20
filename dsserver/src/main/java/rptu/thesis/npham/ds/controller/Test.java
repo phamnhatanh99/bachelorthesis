@@ -21,8 +21,6 @@ import rptu.thesis.npham.ds.service.WordnetSimilarity;
 import rptu.thesis.npham.ds.utils.Jaccard;
 import rptu.thesis.npham.ds.utils.Pair;
 import tech.tablesaw.api.Table;
-import tech.tablesaw.io.ColumnIndexOutOfBoundsException;
-import tech.tablesaw.io.csv.CsvReadOptions;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -65,12 +63,11 @@ public class Test {
                 System.out.println("Reading " + file.toString());
                 Table table;
                 try {
-                    table = readTable(file);
+                    table = CSVReader.readTable(file, true);
                 } catch (ArrayIndexOutOfBoundsException | TextParsingException e2) {
                     System.out.println("Error reading file, skipping");
                     continue;
                 }
-                table.setName(CSVReader.trimCSVSuffix(table.name()));
                 List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table, InetAddress.getLocalHost().getHostAddress());
                 all.addAll(metadata_list);
             }
@@ -96,11 +93,10 @@ public class Test {
         String filePath = folderPath + "\\" + filename;
         Table table;
         try {
-            table = readTable(Paths.get(filePath));
+            table = CSVReader.readTable(Paths.get(filePath), true);
         } catch (ArrayIndexOutOfBoundsException | TextParsingException e2) {
             return "Error reading file";
         }
-        table.setName(CSVReader.trimCSVSuffix(table.name()));
         List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table, InetAddress.getLocalHost().getHostAddress());
         List<Pair<Metadata, Sketches>> all = new ArrayList<>(metadata_list);
         List<Metadata> metadatas = new ArrayList<>();
@@ -172,18 +168,6 @@ public class Test {
         }
 
         similarity_scores_repository.saveAll(scores_list);
-    }
-
-    private Table readTable(Path path) throws ArrayIndexOutOfBoundsException, TextParsingException {
-        Table table;
-        CsvReadOptions.Builder options = CsvReadOptions.builder(path.toString()).maxCharsPerColumn(32767);
-        try {
-            table = Table.read().csv(options.separator(',').build());
-        } catch (ColumnIndexOutOfBoundsException | IllegalArgumentException | IndexOutOfBoundsException e) {
-            System.out.println("Error reading file with comma separator");
-            table = Table.read().csv(options.separator(';').build());
-        }
-        return table;
     }
 
     @GetMapping("clear")

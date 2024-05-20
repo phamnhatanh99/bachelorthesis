@@ -1,21 +1,10 @@
-package rptu.thesis.npham.ds.model;
+package rptu.thesis.npham.ds.model.query;
 
 import rptu.thesis.npham.ds.utils.Pair;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class QueryResults {
-
-    private final List<Pair<String, Pair<String, Double>>> results;
-
-    public QueryResults() {
-        results = new ArrayList<>();
-    }
-
-    public QueryResults(List<Pair<String, Pair<String, Double>>> results) {
-        this.results = results;
-    }
+public record QueryResults(List<Pair<String, Pair<String, Double>>> results) {
 
     @Override
     public String toString() {
@@ -33,8 +22,8 @@ public class QueryResults {
         this.results.addAll(results);
     }
 
-    public List<Pair<String, Pair<String, Double>>> getResults() {
-        return results;
+    public int size() {
+        return results.size();
     }
 
     /**
@@ -42,5 +31,9 @@ public class QueryResults {
      */
     public void sortResults() {
         results.sort((r1, r2) -> Double.compare(r2.second().second(), r1.second().second()));
+    }
+
+    public void limitResults(int limit) {
+        results.subList(limit, results.size()).clear();
     }
 }

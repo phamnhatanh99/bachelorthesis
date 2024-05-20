@@ -42,7 +42,6 @@ public class Profiler {
             String id = uuid + Constants.SEPARATOR + column_name;
             String column_type = column.type().name();
             int size = column.size();
-            String placeholder = ""; //TODO: change this
 
             Metadata metadata = createMetadata(id, table_name, column_name, column_type, size, arity, address);
             Sketches sketches = createSketches(id, column, column_type);

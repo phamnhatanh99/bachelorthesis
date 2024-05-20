@@ -1,4 +1,4 @@
-package rptu.thesis.npham.ds.model.evaluation;
+package rptu.thesis.npham.ds.evaluation;
 
 public enum Datasets {
     NEXTIAJD_XS, NEXTIAJD_S, TUS_S, TUS_L, CHEMBL22;
