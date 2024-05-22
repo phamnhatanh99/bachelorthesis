@@ -4,10 +4,10 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
-import rptu.thesis.npham.ds.utils.Constants;
+import rptu.thesis.npham.ds.utils.StringUtils;
 
 @Document(collection = "metadata")
-@CompoundIndex(name = "unique_index", def="{'table_name' : 1, 'column_name' : 1, 'type' : 1, 'size': 1, 'arity': 1}", unique = true)
+@CompoundIndex(name = "unique_index", def="{'table_name' : 1, 'column_name' : 1, 'type' : 1, 'size': 1, 'arity': 1, 'address': 1}", unique = true)
 public class Metadata {
 
     @Id
@@ -85,7 +85,7 @@ public class Metadata {
 
     @Override
     public String toString() {
-        return table_name + Constants.SEPARATOR + column_name;
+        return table_name + StringUtils.SEPARATOR + column_name;
     }
 
     @Override

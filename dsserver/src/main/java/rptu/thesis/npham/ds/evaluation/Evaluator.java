@@ -6,7 +6,6 @@ import rptu.thesis.npham.ds.model.query.QueryResults;
 import rptu.thesis.npham.ds.model.ground_truth.GroundTruth;
 import rptu.thesis.npham.ds.repository.GroundTruthRepo;
 import rptu.thesis.npham.ds.utils.CSVReader;
-import rptu.thesis.npham.ds.utils.Constants;
 import rptu.thesis.npham.ds.utils.Pair;
 import rptu.thesis.npham.ds.utils.StringUtils;
 import tech.tablesaw.api.Table;
@@ -57,10 +56,10 @@ public class Evaluator {
         Set<GroundTruth> ground_truths_set = new HashSet<>();
 
         for (Pair<String, Pair<String, Double>> res : query_results.results()) {
-            String[] query = res.first().split(Constants.SEPARATOR, 2);
+            String[] query = res.first().split(StringUtils.SEPARATOR, 2);
             String query_table_name = query[0];
             String query_column_name = query[1];
-            String[] candidate = res.second().first().split(Constants.SEPARATOR, 2);
+            String[] candidate = res.second().first().split(StringUtils.SEPARATOR, 2);
             String candidate_table_name = candidate[0];
             String candidate_column_name = candidate[1];
 

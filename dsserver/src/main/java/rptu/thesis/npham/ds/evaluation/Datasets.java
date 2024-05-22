@@ -1,14 +1,16 @@
 package rptu.thesis.npham.ds.evaluation;
 
 public enum Datasets {
-    NEXTIAJD_XS, NEXTIAJD_S, TUS_S, TUS_L, CHEMBL22;
+    NEXTIAJD_TRAINING, NEXTIAJD_XS, NEXTIAJD_S, NEXTIAJD_M, TUS_S, TUS_L;
 
     public static String getCSVFile(Datasets dataset) {
-        switch (dataset) {
-            case NEXTIAJD_XS -> {
-                return "nextiajd_testbedXS.csv";
-            }
-            default -> throw new RuntimeException("File not yet available");
-        }
+        return switch (dataset) {
+            case NEXTIAJD_TRAINING -> "nextiajd_training.csv";
+            case NEXTIAJD_XS -> "nextiajd_testbedXS.csv";
+            case NEXTIAJD_S -> "nextiajd_testbedS.csv";
+            case NEXTIAJD_M -> "nextiajd_testbedM.csv";
+            case TUS_S -> "tus_s.csv";
+            case TUS_L -> "tus_l.csv";
+        };
     }
 }

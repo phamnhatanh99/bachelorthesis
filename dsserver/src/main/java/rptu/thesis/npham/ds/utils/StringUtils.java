@@ -6,6 +6,8 @@ import java.util.regex.Pattern;
 
 public class StringUtils {
 
+    public static final String SEPARATOR = "__-__";
+
     private final static List<String> STOP_WORDS_LIST = Arrays.asList(
             "i", "me", "my", "myself",
             "we", "us", "our", "ours", "ourselves",

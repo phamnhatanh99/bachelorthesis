@@ -15,9 +15,9 @@ import rptu.thesis.npham.ds.repository.MetadataRepo;
 import rptu.thesis.npham.ds.repository.SimilarityScoresRepo;
 import rptu.thesis.npham.ds.repository.SketchesRepo;
 import rptu.thesis.npham.ds.utils.CSVReader;
-import rptu.thesis.npham.ds.service.Lazo;
+import rptu.thesis.npham.ds.service.lazo.Lazo;
 import rptu.thesis.npham.ds.service.Profiler;
-import rptu.thesis.npham.ds.service.WordnetSimilarity;
+import rptu.thesis.npham.ds.service.SimilarityCalculator;
 import rptu.thesis.npham.ds.utils.Jaccard;
 import rptu.thesis.npham.ds.utils.Pair;
 import tech.tablesaw.api.Table;
@@ -39,16 +39,16 @@ public class Test {
     private final SketchesRepo sketches_repository;
     private final SimilarityScoresRepo similarity_scores_repository;
     private final Profiler profiler;
-    private final WordnetSimilarity wordnet_similarity;
+    private final SimilarityCalculator similarity_calculator;
     private final Lazo lazo;
 
     @Autowired
-    public Test(MetadataRepo metadata_repository, SketchesRepo sketches_repository, SimilarityScoresRepo similarity_scores_repository, Profiler profiler, WordnetSimilarity wordnet_similarity, Lazo lazo) {
+    public Test(MetadataRepo metadata_repository, SketchesRepo sketches_repository, SimilarityScoresRepo similarity_scores_repository, Profiler profiler, SimilarityCalculator similarity_calculator, Lazo lazo) {
         this.metadata_repository = metadata_repository;
         this.sketches_repository = sketches_repository;
         this.similarity_scores_repository = similarity_scores_repository;
         this.profiler = profiler;
-        this.wordnet_similarity = wordnet_similarity;
+        this.similarity_calculator = similarity_calculator;
         this.lazo = lazo;
     }
 
@@ -119,16 +119,17 @@ public class Test {
         String table_name = metadata.getTableName();
         String column_name = metadata.getColumnName();
 
-        Map<Metadata, Jaccard> containment_similarity = lazo.queryColumnContainment(metadata);
+        Map<Metadata, Jaccard> containment_similarity = similarity_calculator.columnValuesSimilarity(metadata);
         Set<Metadata> containment_candidate = containment_similarity.keySet();
 
-        Map<Metadata, Jaccard> format_similarity = lazo.queryFormatContainment(metadata);
+        Map<Metadata, Jaccard> format_similarity = similarity_calculator.columnFormatSimilarity(metadata);
         format_similarity.keySet().retainAll(containment_candidate);
 
         Map<Metadata, Double> table_name_similarity = containment_candidate.stream().parallel().
-                collect(Collectors.toMap(Function.identity(), m -> wordnet_similarity.sentenceSimilarity(m.getTableName(), table_name)));
+                collect(Collectors.toMap(Function.identity(), m -> similarity_calculator.sentenceSimilarity(m.getTableName(), table_name)));
+
         Map<Metadata, Double> column_name_similarity = containment_candidate.stream().parallel().
-                collect(Collectors.toMap(Function.identity(), m -> wordnet_similarity.sentenceSimilarity(m.getColumnName(), column_name)));
+                collect(Collectors.toMap(Function.identity(), m -> similarity_calculator.sentenceSimilarity(m.getColumnName(), column_name)));
 
         List<SimilarityScores> scores_list = new ArrayList<>();
 
@@ -139,13 +140,13 @@ public class Test {
                     orElse(new SimilarityScores(m.getId(), new HashMap<>()));
 
             double table_name_sim = table_name_similarity.get(m);
-            Measure table_name_measure = new Measure(SimilarityMeasures.TABLE_NAME, table_name_sim, 1);
+            Measure table_name_measure = new Measure(SimilarityMeasures.TABLE_NAME, table_name_sim);
             double column_name_sim = column_name_similarity.get(m);
-            Measure column_name_measure = new Measure(SimilarityMeasures.COLUMN_NAME, column_name_sim, 1);
+            Measure column_name_measure = new Measure(SimilarityMeasures.COLUMN_NAME, column_name_sim);
             double containment_sim = containment_similarity.get(m).jcx();
-            Measure containment_measure = new Measure(SimilarityMeasures.COLUMN_VALUES, containment_sim, 1);
+            Measure containment_measure = new Measure(SimilarityMeasures.COLUMN_VALUES, containment_sim);
             double format_sim = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcx();
-            Measure format_measure = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim, 1);
+            Measure format_measure = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim);
             Score score = new Score(new ArrayList<>());
             score.addMeasure(table_name_measure);
             score.addMeasure(column_name_measure);
@@ -155,9 +156,9 @@ public class Test {
             scores_list.add(scores);
 
             double containment_sim_candidate = containment_similarity.get(m).jcy();
-            Measure containment_measure_candidate = new Measure(SimilarityMeasures.COLUMN_VALUES, containment_sim_candidate, 1);
+            Measure containment_measure_candidate = new Measure(SimilarityMeasures.COLUMN_VALUES, containment_sim_candidate);
             double format_sim_candidate = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcy();
-            Measure format_measure_candidate = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim_candidate, 1);
+            Measure format_measure_candidate = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim_candidate);
             Score score_candidate = new Score(new ArrayList<>());
             score_candidate.addMeasure(table_name_measure);
             score_candidate.addMeasure(column_name_measure);

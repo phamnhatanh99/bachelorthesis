@@ -34,12 +34,15 @@ public class Score implements Comparable<Score> {
                 .orElse(0.0);
     }
 
-    public double weightedAverage() {
+    public double weightedAverage(boolean join) {
         double result = 0;
         double total_weight = 0;
         for (Measure measure: similarity_measures) {
-            result += measure.score() * measure.weight();
-            total_weight += measure.weight();
+            double weight = join
+                    ? SimilarityMeasures.getJoinWeight(measure.similarity_measure())
+                    : SimilarityMeasures.getUnionWeight(measure.similarity_measure());
+            result += measure.score() * weight;
+            total_weight += weight;
         }
         return result / total_weight;
     }

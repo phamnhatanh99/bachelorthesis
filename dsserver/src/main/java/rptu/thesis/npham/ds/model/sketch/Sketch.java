@@ -1,26 +1,28 @@
 package rptu.thesis.npham.ds.model.sketch;
 
+import rptu.thesis.npham.ds.service.lazo.SketchType;
+
 import java.util.Arrays;
 
 public class Sketch {
 
-    private String type;
+    private SketchType type;
     private long cardinality;
     private long[] hash_values;
 
     public Sketch() {}
 
-    public Sketch(String type, long cardinality, long[] hash_values) {
+    public Sketch(SketchType type, long cardinality, long[] hash_values) {
         this.type = type;
         this.cardinality = cardinality;
         this.hash_values = hash_values;
     }
 
-    public String getType() {
+    public SketchType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(SketchType type) {
         this.type = type;
     }
 
