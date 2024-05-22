@@ -1,10 +1,13 @@
 package rptu.thesis.npham.ds.controller;
 
 import com.univocity.parsers.common.TextParsingException;
+import tech.tablesaw.api.Table;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+
 import rptu.thesis.npham.ds.model.metadata.Metadata;
 import rptu.thesis.npham.ds.model.similarity.Measure;
 import rptu.thesis.npham.ds.model.similarity.Score;
@@ -20,7 +23,6 @@ import rptu.thesis.npham.ds.service.Profiler;
 import rptu.thesis.npham.ds.service.SimilarityCalculator;
 import rptu.thesis.npham.ds.utils.Jaccard;
 import rptu.thesis.npham.ds.utils.Pair;
-import tech.tablesaw.api.Table;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -83,6 +85,7 @@ public class Test {
         });
         metadata_repository.saveAll(metadatas);
         sketches_repository.saveAll(sketches);
+        sketches.forEach(lazo::updateIndex);
         metadatas.forEach(m -> storeSimilarityScores(m.getId()));
         return "Import method finished";
     }
@@ -116,6 +119,8 @@ public class Test {
         if (query.isEmpty()) throw new RuntimeException("ID does not exists");
         Metadata metadata = query.get();
 
+        List<SimilarityScores> scores_list = new ArrayList<>();
+
         String table_name = metadata.getTableName();
         String column_name = metadata.getColumnName();
 
@@ -130,9 +135,6 @@ public class Test {
 
         Map<Metadata, Double> column_name_similarity = containment_candidate.stream().parallel().
                 collect(Collectors.toMap(Function.identity(), m -> similarity_calculator.sentenceSimilarity(m.getColumnName(), column_name)));
-
-        List<SimilarityScores> scores_list = new ArrayList<>();
-
         SimilarityScores scores = new SimilarityScores(metadata.getId(), new HashMap<>());
 
         for (Metadata m: containment_candidate) {
@@ -144,7 +146,7 @@ public class Test {
             double column_name_sim = column_name_similarity.get(m);
             Measure column_name_measure = new Measure(SimilarityMeasures.COLUMN_NAME, column_name_sim);
             double containment_sim = containment_similarity.get(m).jcx();
-            Measure containment_measure = new Measure(SimilarityMeasures.COLUMN_VALUES, containment_sim);
+            Measure containment_measure = new Measure(SimilarityMeasures.COLUMN_VALUE, containment_sim);
             double format_sim = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcx();
             Measure format_measure = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim);
             Score score = new Score(new ArrayList<>());
@@ -156,7 +158,7 @@ public class Test {
             scores_list.add(scores);
 
             double containment_sim_candidate = containment_similarity.get(m).jcy();
-            Measure containment_measure_candidate = new Measure(SimilarityMeasures.COLUMN_VALUES, containment_sim_candidate);
+            Measure containment_measure_candidate = new Measure(SimilarityMeasures.COLUMN_VALUE, containment_sim_candidate);
             double format_sim_candidate = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcy();
             Measure format_measure_candidate = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim_candidate);
             Score score_candidate = new Score(new ArrayList<>());
@@ -170,6 +172,8 @@ public class Test {
 
         similarity_scores_repository.saveAll(scores_list);
     }
+
+//    private Measure tableNameMeasure
 
     @GetMapping("clear")
     public String clear() {

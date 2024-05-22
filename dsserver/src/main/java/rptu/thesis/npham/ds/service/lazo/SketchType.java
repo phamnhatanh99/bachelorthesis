@@ -1,5 +1,5 @@
 package rptu.thesis.npham.ds.service.lazo;
 
 public enum SketchType {
-    STRING, NUMERIC, TEMPORAL, FORMAT;
+    TABLE_NAME, COLUMN_NAME, COLUMN_VALUE, FORMAT
 }

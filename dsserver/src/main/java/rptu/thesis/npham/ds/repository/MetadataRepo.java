@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface MetadataRepo extends MongoRepository<Metadata, String> {
     List<Metadata> findByIdStartsWith(String id);
+    List<Metadata> findByType(String type);
+    List<Metadata> findByTypeIn(List<String> types);
 }

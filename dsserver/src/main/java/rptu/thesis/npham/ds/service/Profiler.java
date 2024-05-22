@@ -8,6 +8,7 @@ import rptu.thesis.npham.ds.model.sketch.Sketch;
 import rptu.thesis.npham.ds.model.sketch.Sketches;
 import rptu.thesis.npham.ds.service.lazo.Lazo;
 import rptu.thesis.npham.ds.service.lazo.SketchType;
+import rptu.thesis.npham.ds.utils.Constants;
 import rptu.thesis.npham.ds.utils.Pair;
 import rptu.thesis.npham.ds.utils.StringUtils;
 import tech.tablesaw.api.Table;
@@ -45,7 +46,7 @@ public class Profiler {
             int size = column.size();
 
             Metadata metadata = createMetadata(id, table_name, column_name, column_type, size, arity, address);
-            Sketches sketches = createSketches(id, column, column_type);
+            Sketches sketches = createSketches(id, column, column_type, table_name, column_name);
 
             result.add(new Pair<>(metadata, sketches));
         }
@@ -66,31 +67,45 @@ public class Profiler {
 
     // TODO: maybe optimize to read the column only once and create all sketches at once
     /**
-     * Creates sketches for a column and store them in the index.
+     * Creates sketches for a column.
      */
-    private Sketches createSketches(String id, Column<?> column, String type) {
-        LazoSketch lazo_column_sketch = lazo.createSketch(column);
-        SketchType column_sketch_type;
-        if (Lazo.NUMERIC_TYPES.contains(type)) {
-            column_sketch_type = SketchType.NUMERIC;
-        } else if (Lazo.TEMPORAL_TYPES.contains(type)) {
-            column_sketch_type = SketchType.TEMPORAL;
-        } else {
-            column_sketch_type = SketchType.STRING;
-        }
-        Sketch column_sketch = new Sketch(column_sketch_type, lazo_column_sketch.getCardinality(), lazo_column_sketch.getHashValues());
-
-        Set<String> format_patterns = StringUtils.generateFormatPatterns(column.asStringColumn().asSet());
-        LazoSketch lazo_format_sketch = lazo.createSketch(format_patterns);
-        Sketch format_sketch = new Sketch(SketchType.FORMAT, lazo_format_sketch.getCardinality(), lazo_format_sketch.getHashValues());
+    private Sketches createSketches(String id, Column<?> column, String type, String table_name, String column_name) {
+        Sketch table_name_sketch = createNameSketch(table_name, SketchType.TABLE_NAME);
+        Sketch column_name_sketch = createNameSketch(column_name, SketchType.COLUMN_NAME);
+        Sketch column_sketch = createColumnSketch(column, type);
+        Sketch format_sketch = createFormatSketch(column);
 
         Sketches sketches = new Sketches();
         sketches.setId(id);
-        sketches.setSketches(new HashSet<>(Arrays.asList(column_sketch, format_sketch)));
-
-        lazo.updateIndex(sketches);
+        sketches.setSketches(new HashSet<>(Arrays.asList(table_name_sketch, column_name_sketch, column_sketch, format_sketch)));
 
         return sketches;
     }
 
+    private Sketch createNameSketch(String name, SketchType type) {
+        int k = 4;
+        Set<String> shingles = StringUtils.shingle(name, k);
+        LazoSketch lazo_name_sketch = lazo.createSketch(shingles);
+        return new Sketch(type, lazo_name_sketch.getCardinality(), lazo_name_sketch.getHashValues());
+    }
+
+    private Sketch createColumnSketch(Column<?> column, String type) {
+        LazoSketch lazo_column_sketch = lazo.createSketch(column);
+        SketchType column_sketch_type;
+//        if (Constants.NUMERIC_TYPES.contains(type)) {
+//            column_sketch_type = SketchType.NUMERIC;
+//        } else if (Constants.TEMPORAL_TYPES.contains(type)) {
+//            column_sketch_type = SketchType.TEMPORAL;
+//        } else {
+//            column_sketch_type = SketchType.STRING;
+//        }
+        column_sketch_type = SketchType.COLUMN_VALUE;
+        return new Sketch(column_sketch_type, lazo_column_sketch.getCardinality(), lazo_column_sketch.getHashValues());
+    }
+
+    private Sketch createFormatSketch(Column<?> column) {
+        Set<String> format_patterns = StringUtils.generateFormatPatterns(column.asStringColumn().asSet());
+        LazoSketch lazo_format_sketch = lazo.createSketch(format_patterns);
+        return new Sketch(SketchType.FORMAT, lazo_format_sketch.getCardinality(), lazo_format_sketch.getHashValues());
+    }
 }
