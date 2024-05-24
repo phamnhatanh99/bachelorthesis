@@ -34,19 +34,6 @@ public class SimilarityCalculator {
         return 1 - ((double) levenshtein / Math.max(s1.length(), s2.length()));
     }
 
-    public double jaccardSimilarity(String s1, String s2) {
-        int k = 4;
-        Set<String> shingles1 = StringUtils.shingle(s1, k);
-        Set<String> shingles2 = StringUtils.shingle(s2, k);
-
-        Set<String> intersection = new HashSet<>(shingles1);
-        intersection.retainAll(shingles2);
-
-        int intersection_size = intersection.size();
-
-        return (double) intersection_size / (shingles1.size() + shingles2.size() - intersection_size);
-    }
-
     public double sentenceSimilarity(String sentence1, String sentence2) {
         Sentence s1 = new Sentence(sentence1);
         Sentence s2 = new Sentence(sentence2);
@@ -73,6 +60,14 @@ public class SimilarityCalculator {
             if (similarity > result) result = similarity;
         }
         return result;
+    }
+
+    public Map<Metadata, Jaccard> tableNameShingleSimilarity(Metadata metadata) {
+        return lazo.queryTableName(metadata);
+    }
+
+    public Map<Metadata, Jaccard> columnNameShingleSimilarity(Metadata metadata) {
+        return lazo.queryColumnName(metadata);
     }
 
     public Map<Metadata, Jaccard> columnValuesSimilarity(Metadata metadata) {

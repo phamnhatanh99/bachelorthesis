@@ -14,7 +14,7 @@ public class CSVReader {
         CsvReadOptions.Builder options = CsvReadOptions.builder(path.toString()).maxCharsPerColumn(32767).header(header);
         try {
             table = Table.read().csv(options.separator(',').build());
-        } catch (ColumnIndexOutOfBoundsException | IllegalArgumentException | IndexOutOfBoundsException e) {
+        } catch (IllegalArgumentException e) {
             System.out.println("Error reading file with comma separator");
             table = Table.read().csv(options.separator(';').build());
         }

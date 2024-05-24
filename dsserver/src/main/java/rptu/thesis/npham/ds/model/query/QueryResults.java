@@ -1,25 +1,24 @@
 package rptu.thesis.npham.ds.model.query;
 
-import rptu.thesis.npham.ds.utils.Pair;
-
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public record QueryResults(List<Pair<String, Pair<String, Double>>> results) {
+public record QueryResults(List<SingleResult> results) {
 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        results.forEach(r ->
-                builder.append(r.first()).append(" is similar to ").append(r.second().first()).append(" with a score of ").append(r.second().second()).append("\n"));
+        results.forEach(r -> builder.append(r.toString()).append("\n"));
         return builder.toString();
     }
 
     public void add(String query, String candidate, double score) {
-        results.add(new Pair<>(query, new Pair<>(candidate, score)));
+        results.add(new SingleResult(query, candidate, score));
     }
 
-    public void addAll(List<Pair<String, Pair<String, Double>>> results) {
-        this.results.addAll(results);
+    public void addAll(QueryResults results) {
+        this.results.addAll(results.results());
     }
 
     public int size() {
@@ -30,10 +29,15 @@ public record QueryResults(List<Pair<String, Pair<String, Double>>> results) {
      * Returns the results sorted by score in descending order
      */
     public void sortResults() {
-        results.sort((r1, r2) -> Double.compare(r2.second().second(), r1.second().second()));
+        results.sort((r1, r2) -> Double.compare(r2.score(), r1.score()));
     }
 
     public void limitResults(int limit) {
+        sortResults();
         results.subList(limit, results.size()).clear();
+    }
+
+    public QueryResults withThreshold(double threshold) {
+        return new QueryResults(results.stream().filter(r -> r.score() >= threshold).collect(Collectors.toCollection(ArrayList::new)));
     }
 }

@@ -1,12 +1,13 @@
 package rptu.thesis.npham.ds.evaluation;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import rptu.thesis.npham.ds.model.query.QueryResults;
 import rptu.thesis.npham.ds.model.ground_truth.GroundTruth;
+import rptu.thesis.npham.ds.model.query.SingleResult;
 import rptu.thesis.npham.ds.repository.GroundTruthRepo;
 import rptu.thesis.npham.ds.utils.CSVReader;
-import rptu.thesis.npham.ds.utils.Pair;
 import rptu.thesis.npham.ds.utils.StringUtils;
 import tech.tablesaw.api.Table;
 
@@ -42,7 +43,9 @@ public class Evaluator {
                     StringUtils.normalize(row.getString(1)),
                     CSVReader.trimCSVSuffix(row.getString(2)),
                     StringUtils.normalize(row.getString(3)));
-            ground_truth_repository.save(ground_truth);
+            try {
+                ground_truth_repository.save(ground_truth);
+            } catch (DuplicateKeyException ignored) {}
         });
     }
 
@@ -55,11 +58,11 @@ public class Evaluator {
 
         Set<GroundTruth> ground_truths_set = new HashSet<>();
 
-        for (Pair<String, Pair<String, Double>> res : query_results.results()) {
-            String[] query = res.first().split(StringUtils.SEPARATOR, 2);
+        for (SingleResult res : query_results.results()) {
+            String[] query = res.query().split(StringUtils.SEPARATOR, 2);
             String query_table_name = query[0];
             String query_column_name = query[1];
-            String[] candidate = res.second().first().split(StringUtils.SEPARATOR, 2);
+            String[] candidate = res.candidate().split(StringUtils.SEPARATOR, 2);
             String candidate_table_name = candidate[0];
             String candidate_column_name = candidate[1];
 
@@ -73,18 +76,19 @@ public class Evaluator {
 
         fn = ground_truths_set.size() - tp;
 
+        System.out.println("TP: " + tp);
+        System.out.println("FP: " + fp);
+        System.out.println("FN: " + fn);
+
+        // Precision
         if (tp + fp == 0) result[0] = 1;
         else result[0] = (double) tp / (tp + fp);
 
+        // Recall
         if (tp + fn == 0) result[1] = 1;
         else result[1] = (double) tp / (tp + fn);
 
         return result;
-    }
-
-    public double f1Score(QueryResults query_results) {
-        double[] pr = precisionAndRecall(query_results);
-        return 2 * pr[0] * pr[1] / (pr[0] + pr[1]);
     }
 
     public double f1Score(double precision, double recall) {

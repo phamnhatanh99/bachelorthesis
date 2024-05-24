@@ -1,13 +1,13 @@
-package rptu.thesis.npham.ds;
+package thesis.dsclient;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class DSApplicationTests {
+class DSClientApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
 }

@@ -11,7 +11,6 @@ import rptu.thesis.npham.ds.model.sketch.Sketch;
 import rptu.thesis.npham.ds.model.sketch.Sketches;
 import rptu.thesis.npham.ds.repository.MetadataRepo;
 import rptu.thesis.npham.ds.repository.SketchesRepo;
-import rptu.thesis.npham.ds.utils.Constants;
 import rptu.thesis.npham.ds.utils.Jaccard;
 import rptu.thesis.npham.ds.utils.StringUtils;
 
@@ -24,7 +23,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Service
 public class Lazo {
     private static final int N_PERMUTATIONS = 256;
-    private static final float THRESHOLD = 0.0f;
+    private static final float THRESHOLD = 0.5f;
     private static final ReentrantReadWriteLock LOCK = new ReentrantReadWriteLock(false);
 
     private LazoIndex table_name_index;
@@ -66,7 +65,8 @@ public class Lazo {
     public LazoSketch createSketch(Iterable<?> iterable) {
         LazoSketch sketch = new LazoSketch(N_PERMUTATIONS);
         for (Object value: iterable)
-            sketch.update(value.toString());
+            if (value == null) sketch.update("");
+            else sketch.update(value.toString().trim());
         return sketch;
     }
 
@@ -130,42 +130,42 @@ public class Lazo {
         }
     }
 
-    public Map<Metadata, Jaccard> queryTableName(Metadata metadata_input) {
-        Sketch sketch = findSketch(metadata_input, SketchType.TABLE_NAME);
+    public Map<Metadata, Jaccard> queryTableName(Metadata query) {
+        Sketch sketch = findSketch(query, SketchType.TABLE_NAME);
         LazoSketch lazo_sketch = createSketch(sketch.getCardinality(), sketch.getHashValues());
 
-        return queryContainment(table_name_index, lazo_sketch, metadata_input.getId());
+        return queryContainment(table_name_index, lazo_sketch, query.getId());
     }
 
-    public Map<Metadata, Jaccard> queryColumnName(Metadata metadata_input) {
-        Sketch sketch = findSketch(metadata_input, SketchType.COLUMN_NAME);
+    public Map<Metadata, Jaccard> queryColumnName(Metadata query) {
+        Sketch sketch = findSketch(query, SketchType.COLUMN_NAME);
         LazoSketch lazo_sketch = createSketch(sketch.getCardinality(), sketch.getHashValues());
 
-        return queryContainment(column_name_index, lazo_sketch, metadata_input.getId());
+        return queryContainment(column_name_index, lazo_sketch, query.getId());
     }
 
     /**
      * Queries the column value index for the Jaccard coefficient between two columns.
-     * @param metadata_input the metadata of the dataset to query.
+     * @param query the metadata of the dataset to query.
      * @return a map of the candidates and their corresponding Jaccard coefficient.
      */
-    public Map<Metadata, Jaccard> queryColumnValue(Metadata metadata_input) {
-        Sketch sketch = findSketch(metadata_input, SketchType.COLUMN_VALUE);
+    public Map<Metadata, Jaccard> queryColumnValue(Metadata query) {
+        Sketch sketch = findSketch(query, SketchType.COLUMN_VALUE);
         LazoSketch lazo_sketch = createSketch(sketch.getCardinality(), sketch.getHashValues());
 
-        return queryContainment(column_value_index, lazo_sketch, metadata_input.getId());
+        return queryContainment(column_value_index, lazo_sketch, query.getId());
     }
 
     /**
      * Queries the format index for the Jaccard coefficient between two columns.
-     * @param metadata_input the metadata of the dataset to query.
+     * @param query the metadata of the dataset to query.
      * @return a map of the candidates and their corresponding Jaccard coefficient.
      */
-    public Map<Metadata, Jaccard> queryFormat(Metadata metadata_input) {
-        Sketch sketch = findSketch(metadata_input, SketchType.FORMAT);
+    public Map<Metadata, Jaccard> queryFormat(Metadata query) {
+        Sketch sketch = findSketch(query, SketchType.FORMAT);
         LazoSketch lazo_sketch = createSketch(sketch.getCardinality(), sketch.getHashValues());
 
-        return queryContainment(format_index, lazo_sketch, metadata_input.getId());
+        return queryContainment(format_index, lazo_sketch, query.getId());
     }
 
     private Sketch findSketch(Metadata metadata, SketchType sketch_type) {

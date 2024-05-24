@@ -56,7 +56,7 @@ public class Test {
 
     @GetMapping("import")
     public String importAll() {
-        String folderPath = "C:\\Users\\alexa\\Desktop\\Evaluation\\nextiajd\\testbedXS\\datasets";
+        String folderPath = "C:\\Users\\alexa\\Desktop\\Evaluation\\nextiajd\\training\\datasets";
         List<Pair<Metadata, Sketches>> all = new ArrayList<>();
         try {
             Stream<Path> paths = Files.list(Paths.get(folderPath));
@@ -86,7 +86,7 @@ public class Test {
         metadata_repository.saveAll(metadatas);
         sketches_repository.saveAll(sketches);
         sketches.forEach(lazo::updateIndex);
-        metadatas.forEach(m -> storeSimilarityScores(m.getId()));
+//        metadatas.forEach(this::storeSimilarityScores);
         return "Import method finished";
     }
 
@@ -97,7 +97,7 @@ public class Test {
         Table table;
         try {
             table = CSVReader.readTable(Paths.get(filePath), true);
-        } catch (ArrayIndexOutOfBoundsException | TextParsingException e2) {
+        } catch (IndexOutOfBoundsException | TextParsingException e2) {
             return "Error reading file";
         }
         List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table, InetAddress.getLocalHost().getHostAddress());
@@ -110,15 +110,11 @@ public class Test {
         });
         metadata_repository.saveAll(metadatas);
         sketches_repository.saveAll(sketches);
-        metadatas.forEach(m -> storeSimilarityScores(m.getId()));
+//        metadatas.forEach(this::storeSimilarityScores);
         return "Import method finished";
     }
 
-    private void storeSimilarityScores(String id) {
-        Optional<Metadata> query = metadata_repository.findById(id);
-        if (query.isEmpty()) throw new RuntimeException("ID does not exists");
-        Metadata metadata = query.get();
-
+    private void storeSimilarityScores(Metadata metadata) {
         List<SimilarityScores> scores_list = new ArrayList<>();
 
         String table_name = metadata.getTableName();
@@ -142,13 +138,13 @@ public class Test {
                     orElse(new SimilarityScores(m.getId(), new HashMap<>()));
 
             double table_name_sim = table_name_similarity.get(m);
-            Measure table_name_measure = new Measure(SimilarityMeasures.TABLE_NAME, table_name_sim);
+            Measure table_name_measure = new Measure(SimilarityMeasures.TABLE_NAME_WORDNET, table_name_sim, 1);
             double column_name_sim = column_name_similarity.get(m);
-            Measure column_name_measure = new Measure(SimilarityMeasures.COLUMN_NAME, column_name_sim);
+            Measure column_name_measure = new Measure(SimilarityMeasures.COLUMN_NAME_WORDNET, column_name_sim, 1);
             double containment_sim = containment_similarity.get(m).jcx();
-            Measure containment_measure = new Measure(SimilarityMeasures.COLUMN_VALUE, containment_sim);
+            Measure containment_measure = new Measure(SimilarityMeasures.COLUMN_VALUE, containment_sim, 1);
             double format_sim = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcx();
-            Measure format_measure = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim);
+            Measure format_measure = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim, 1);
             Score score = new Score(new ArrayList<>());
             score.addMeasure(table_name_measure);
             score.addMeasure(column_name_measure);
@@ -158,9 +154,9 @@ public class Test {
             scores_list.add(scores);
 
             double containment_sim_candidate = containment_similarity.get(m).jcy();
-            Measure containment_measure_candidate = new Measure(SimilarityMeasures.COLUMN_VALUE, containment_sim_candidate);
+            Measure containment_measure_candidate = new Measure(SimilarityMeasures.COLUMN_VALUE, containment_sim_candidate, 1);
             double format_sim_candidate = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcy();
-            Measure format_measure_candidate = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim_candidate);
+            Measure format_measure_candidate = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim_candidate, 1);
             Score score_candidate = new Score(new ArrayList<>());
             score_candidate.addMeasure(table_name_measure);
             score_candidate.addMeasure(column_name_measure);
@@ -172,8 +168,6 @@ public class Test {
 
         similarity_scores_repository.saveAll(scores_list);
     }
-
-//    private Measure tableNameMeasure
 
     @GetMapping("clear")
     public String clear() {

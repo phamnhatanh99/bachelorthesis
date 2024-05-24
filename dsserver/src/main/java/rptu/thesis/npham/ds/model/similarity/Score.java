@@ -2,7 +2,6 @@ package rptu.thesis.npham.ds.model.similarity;
 
 import rptu.thesis.npham.ds.exceptions.MeasureAlreadyExistException;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class Score implements Comparable<Score> {
@@ -34,13 +33,11 @@ public class Score implements Comparable<Score> {
                 .orElse(0.0);
     }
 
-    public double weightedAverage(boolean join) {
+    public double weightedAverage() {
         double result = 0;
         double total_weight = 0;
         for (Measure measure: similarity_measures) {
-            double weight = join
-                    ? SimilarityMeasures.getJoinWeight(measure.similarity_measure())
-                    : SimilarityMeasures.getUnionWeight(measure.similarity_measure());
+            double weight = measure.weight();
             result += measure.score() * weight;
             total_weight += weight;
         }
