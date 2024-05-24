@@ -12,9 +12,9 @@ public class SimilarityScores {
         @Id
         private String column_id;
         @Field
-        private Map<String, Score> score_map;
+        private Map<String, MeasureList> score_map;
 
-    public SimilarityScores(String column_id, Map<String, Score> score_map) {
+    public SimilarityScores(String column_id, Map<String, MeasureList> score_map) {
             this.column_id = column_id;
             this.score_map = score_map;
         }
@@ -27,11 +27,11 @@ public class SimilarityScores {
             this.column_id = column_id;
         }
 
-        public Map<String, Score> getScoreMap() {
+        public Map<String, MeasureList> getScoreMap() {
             return score_map;
         }
 
-        public void setScoreMap(Map<String, Score> score_map) {
+        public void setScoreMap(Map<String, MeasureList> score_map) {
             this.score_map = score_map;
         }
 

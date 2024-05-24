@@ -2,7 +2,7 @@ package rptu.thesis.npham.ds.model.similarity;
 
 import java.util.Collection;
 
-public enum SimilarityMeasures {
+public enum MeasureEnum {
     TABLE_NAME_WORDNET, TABLE_NAME_SHINGLE, COLUMN_NAME_WORDNET, COLUMN_NAME_SHINGLE, COLUMN_VALUE, COLUMN_FORMAT;
 
     private static double TABLE_NAME_JOIN_WEIGHT = 1;
@@ -15,19 +15,19 @@ public enum SimilarityMeasures {
     private static double COLUMN_VALUES_UNION_WEIGHT = 1;
     private static double COLUMN_FORMAT_UNION_WEIGHT = 1;
 
-    public static boolean onlyWordNet(Collection<SimilarityMeasures> measures) {
+    public static boolean onlyWordNet(Collection<MeasureEnum> measures) {
         return measures.stream().allMatch(m -> m == TABLE_NAME_WORDNET || m == COLUMN_NAME_WORDNET);
     }
 
-    public static boolean onlyLSH(Collection<SimilarityMeasures> measures) {
+    public static boolean onlyLSH(Collection<MeasureEnum> measures) {
         return measures.stream().allMatch(m -> m == TABLE_NAME_SHINGLE || m == COLUMN_NAME_SHINGLE || m == COLUMN_VALUE || m == COLUMN_FORMAT);
     }
 
-    public static boolean isLSH(SimilarityMeasures measure) {
+    public static boolean isLSH(MeasureEnum measure) {
         return measure == TABLE_NAME_SHINGLE || measure == COLUMN_NAME_SHINGLE || measure == COLUMN_VALUE || measure == COLUMN_FORMAT;
     }
 
-    public static double getJoinWeight(SimilarityMeasures measure) {
+    public static double getJoinWeight(MeasureEnum measure) {
         return switch (measure) {
             case TABLE_NAME_WORDNET, TABLE_NAME_SHINGLE -> TABLE_NAME_JOIN_WEIGHT;
             case COLUMN_NAME_WORDNET, COLUMN_NAME_SHINGLE -> COLUMN_NAME_JOIN_WEIGHT;
@@ -36,7 +36,7 @@ public enum SimilarityMeasures {
         };
     }
 
-    public static double getUnionWeight(SimilarityMeasures measure) {
+    public static double getUnionWeight(MeasureEnum measure) {
         return switch (measure) {
             case TABLE_NAME_WORDNET, TABLE_NAME_SHINGLE -> TABLE_NAME_UNION_WEIGHT;
             case COLUMN_NAME_WORDNET, COLUMN_NAME_SHINGLE -> COLUMN_NAME_UNION_WEIGHT;
@@ -45,7 +45,7 @@ public enum SimilarityMeasures {
         };
     }
 
-    public static void setJoinWeight(SimilarityMeasures measure, double weight) {
+    public static void setJoinWeight(MeasureEnum measure, double weight) {
         switch (measure) {
             case TABLE_NAME_WORDNET, TABLE_NAME_SHINGLE -> TABLE_NAME_JOIN_WEIGHT = weight;
             case COLUMN_NAME_WORDNET, COLUMN_NAME_SHINGLE -> COLUMN_NAME_JOIN_WEIGHT = weight;
@@ -54,7 +54,7 @@ public enum SimilarityMeasures {
         }
     }
 
-    public static void setUnionWeight(SimilarityMeasures measure, double weight) {
+    public static void setUnionWeight(MeasureEnum measure, double weight) {
         switch (measure) {
             case TABLE_NAME_WORDNET, TABLE_NAME_SHINGLE -> TABLE_NAME_UNION_WEIGHT = weight;
             case COLUMN_NAME_WORDNET, COLUMN_NAME_SHINGLE -> COLUMN_NAME_UNION_WEIGHT = weight;

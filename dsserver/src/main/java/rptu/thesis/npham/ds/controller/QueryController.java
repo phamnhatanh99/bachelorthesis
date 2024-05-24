@@ -11,8 +11,8 @@ import rptu.thesis.npham.ds.exceptions.NoScoreException;
 import rptu.thesis.npham.ds.model.metadata.Metadata;
 import rptu.thesis.npham.ds.model.query.QueryResults;
 import rptu.thesis.npham.ds.model.similarity.Measure;
-import rptu.thesis.npham.ds.model.similarity.Score;
-import rptu.thesis.npham.ds.model.similarity.SimilarityMeasures;
+import rptu.thesis.npham.ds.model.similarity.MeasureEnum;
+import rptu.thesis.npham.ds.model.similarity.MeasureList;
 import rptu.thesis.npham.ds.model.similarity.SimilarityScores;
 import rptu.thesis.npham.ds.repository.MetadataRepo;
 import rptu.thesis.npham.ds.repository.SimilarityScoresRepo;
@@ -27,15 +27,15 @@ import java.util.*;
 @RestController
 public class QueryController {
 
-    private static final Map<SimilarityMeasures, Double> QUERY_MEASURES = new HashMap<>();
+    private static final Map<MeasureEnum, Double> QUERY_MEASURES = new HashMap<>();
 
     static {
-//        QUERY_MEASURES.put(SimilarityMeasures.TABLE_NAME_WORDNET, 1d);
-//        QUERY_MEASURES.put(SimilarityMeasures.COLUMN_NAME_WORDNET, 2d);
-//        QUERY_MEASURES.put(SimilarityMeasures.TABLE_NAME_SHINGLE, 1d);
-//        QUERY_MEASURES.put(SimilarityMeasures.COLUMN_NAME_SHINGLE, 3d);
-        QUERY_MEASURES.put(SimilarityMeasures.COLUMN_VALUE, 3d);
-        QUERY_MEASURES.put(SimilarityMeasures.COLUMN_FORMAT, 2d);
+//        QUERY_MEASURES.put(MeasureEnum.TABLE_NAME_WORDNET, 1d);
+//        QUERY_MEASURES.put(MeasureEnum.COLUMN_NAME_WORDNET, 2d);
+//        QUERY_MEASURES.put(MeasureEnum.TABLE_NAME_SHINGLE, 1d);
+//        QUERY_MEASURES.put(MeasureEnum.COLUMN_NAME_SHINGLE, 3d);
+        QUERY_MEASURES.put(MeasureEnum.COLUMN_VALUE, 3d);
+        QUERY_MEASURES.put(MeasureEnum.COLUMN_FORMAT, 2d);
     }
 
     private final MetadataRepo metadata_repository;
@@ -109,31 +109,31 @@ public class QueryController {
         List<String> query_similar_types = Constants.typeInList(metadata.getType());
         String table_id = metadata.getId().split(StringUtils.SEPARATOR, 2)[0];
 
-        if (SimilarityMeasures.onlyWordNet(QUERY_MEASURES.keySet())) {
+        if (MeasureEnum.onlyWordNet(QUERY_MEASURES.keySet())) {
             List<String> similar_types = Constants.typeInList(metadata.getType());
             List<Metadata> candidates = metadata_repository.findByIdNotStartsWithAndTypeIn(table_id, similar_types);
             for (Metadata candidate : candidates) {
-                Score score = new Score(new ArrayList<>());
-                for (SimilarityMeasures measure : QUERY_MEASURES.keySet()) {
+                MeasureList measure_list = new MeasureList(new ArrayList<>());
+                for (MeasureEnum measure : QUERY_MEASURES.keySet()) {
                     switch (measure) {
                         case TABLE_NAME_WORDNET -> {
                             double sim = similarity_calculator.sentenceSimilarity(metadata.getTableName(), candidate.getTableName());
                             Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
-                            score.addMeasure(m);
+                            measure_list.addMeasure(m);
                         }
                         case COLUMN_NAME_WORDNET -> {
                             double sim = similarity_calculator.sentenceSimilarity(metadata.getColumnName(), candidate.getColumnName());
                             Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
-                            score.addMeasure(m);
+                            measure_list.addMeasure(m);
                         }
                     }
                 }
-                results.add(metadata.toString(), candidate.toString(), score.average());
+                results.add(metadata.toString(), candidate.toString(), measure_list.average());
             }
         }
-        else if (SimilarityMeasures.onlyLSH(QUERY_MEASURES.keySet())) {
-            Map<SimilarityMeasures, Map<Metadata, Jaccard>> candidates = new HashMap<>();
-            for (SimilarityMeasures measure : QUERY_MEASURES.keySet()) {
+        else if (MeasureEnum.onlyLSH(QUERY_MEASURES.keySet())) {
+            Map<MeasureEnum, Map<Metadata, Jaccard>> candidates = new HashMap<>();
+            for (MeasureEnum measure : QUERY_MEASURES.keySet()) {
                switch (measure) {
                    case TABLE_NAME_SHINGLE -> candidates.put(measure, lazo.queryTableName(metadata));
                    case COLUMN_NAME_SHINGLE -> candidates.put(measure, lazo.queryColumnName(metadata));
@@ -152,18 +152,18 @@ public class QueryController {
             }
 
             for (Metadata candidate : candidate_set) {
-                Score score = new Score(new ArrayList<>());
-                for (SimilarityMeasures measure : QUERY_MEASURES.keySet()) {
+                MeasureList measure_list = new MeasureList(new ArrayList<>());
+                for (MeasureEnum measure : QUERY_MEASURES.keySet()) {
                     double sim = candidates.get(measure).getOrDefault(candidate, default_jaccard).jcx();
                     Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
-                    score.addMeasure(m);
+                    measure_list.addMeasure(m);
                 }
-                results.add(metadata.toString(), candidate.toString(), score.average());
+                results.add(metadata.toString(), candidate.toString(), measure_list.average());
             }
         }
         else {
-            Map<SimilarityMeasures, Map<Metadata, Jaccard>> candidates = new HashMap<>();
-            for (SimilarityMeasures measure : QUERY_MEASURES.keySet()) {
+            Map<MeasureEnum, Map<Metadata, Jaccard>> candidates = new HashMap<>();
+            for (MeasureEnum measure : QUERY_MEASURES.keySet()) {
                 switch (measure) {
                     case TABLE_NAME_SHINGLE -> candidates.put(measure, lazo.queryTableName(metadata));
                     case COLUMN_NAME_SHINGLE -> candidates.put(measure, lazo.queryColumnName(metadata));
@@ -182,29 +182,29 @@ public class QueryController {
             }
 
             for (Metadata candidate : candidate_set) {
-                Score score = new Score(new ArrayList<>());
-                for (SimilarityMeasures measure : QUERY_MEASURES.keySet()) {
-                    if (SimilarityMeasures.isLSH(measure)) {
+                MeasureList measure_list = new MeasureList(new ArrayList<>());
+                for (MeasureEnum measure : QUERY_MEASURES.keySet()) {
+                    if (MeasureEnum.isLSH(measure)) {
                         double sim = candidates.get(measure).getOrDefault(candidate, default_jaccard).jcx();
                         Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
-                        score.addMeasure(m);
+                        measure_list.addMeasure(m);
                     }
                     else {
                         switch (measure) {
                             case TABLE_NAME_WORDNET -> {
                                 double sim = similarity_calculator.sentenceSimilarity(metadata.getTableName(), candidate.getTableName());
                                 Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
-                                score.addMeasure(m);
+                                measure_list.addMeasure(m);
                             }
                             case COLUMN_NAME_WORDNET -> {
                                 double sim = similarity_calculator.sentenceSimilarity(metadata.getColumnName(), candidate.getColumnName());
                                 Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
-                                score.addMeasure(m);
+                                measure_list.addMeasure(m);
                             }
                         }
                     }
                 }
-                results.add(metadata.toString(), candidate.toString(), score.average());
+                results.add(metadata.toString(), candidate.toString(), measure_list.average());
             }
         }
         return results;

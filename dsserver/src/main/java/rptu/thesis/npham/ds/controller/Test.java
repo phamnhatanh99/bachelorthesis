@@ -1,6 +1,7 @@
 package rptu.thesis.npham.ds.controller;
 
 import com.univocity.parsers.common.TextParsingException;
+import rptu.thesis.npham.ds.model.similarity.MeasureEnum;
 import tech.tablesaw.api.Table;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import rptu.thesis.npham.ds.model.metadata.Metadata;
 import rptu.thesis.npham.ds.model.similarity.Measure;
-import rptu.thesis.npham.ds.model.similarity.Score;
-import rptu.thesis.npham.ds.model.similarity.SimilarityMeasures;
+import rptu.thesis.npham.ds.model.similarity.MeasureList;
 import rptu.thesis.npham.ds.model.similarity.SimilarityScores;
 import rptu.thesis.npham.ds.model.sketch.Sketches;
 import rptu.thesis.npham.ds.repository.MetadataRepo;
@@ -138,31 +138,31 @@ public class Test {
                     orElse(new SimilarityScores(m.getId(), new HashMap<>()));
 
             double table_name_sim = table_name_similarity.get(m);
-            Measure table_name_measure = new Measure(SimilarityMeasures.TABLE_NAME_WORDNET, table_name_sim, 1);
+            Measure table_name_measure = new Measure(MeasureEnum.TABLE_NAME_WORDNET, table_name_sim, 1);
             double column_name_sim = column_name_similarity.get(m);
-            Measure column_name_measure = new Measure(SimilarityMeasures.COLUMN_NAME_WORDNET, column_name_sim, 1);
+            Measure column_name_measure = new Measure(MeasureEnum.COLUMN_NAME_WORDNET, column_name_sim, 1);
             double containment_sim = containment_similarity.get(m).jcx();
-            Measure containment_measure = new Measure(SimilarityMeasures.COLUMN_VALUE, containment_sim, 1);
+            Measure containment_measure = new Measure(MeasureEnum.COLUMN_VALUE, containment_sim, 1);
             double format_sim = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcx();
-            Measure format_measure = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim, 1);
-            Score score = new Score(new ArrayList<>());
-            score.addMeasure(table_name_measure);
-            score.addMeasure(column_name_measure);
-            score.addMeasure(containment_measure);
-            score.addMeasure(format_measure);
-            scores.getScoreMap().put(m.getId(), score);
+            Measure format_measure = new Measure(MeasureEnum.COLUMN_FORMAT, format_sim, 1);
+            MeasureList measure_list = new MeasureList(new ArrayList<>());
+            measure_list.addMeasure(table_name_measure);
+            measure_list.addMeasure(column_name_measure);
+            measure_list.addMeasure(containment_measure);
+            measure_list.addMeasure(format_measure);
+            scores.getScoreMap().put(m.getId(), measure_list);
             scores_list.add(scores);
 
             double containment_sim_candidate = containment_similarity.get(m).jcy();
-            Measure containment_measure_candidate = new Measure(SimilarityMeasures.COLUMN_VALUE, containment_sim_candidate, 1);
+            Measure containment_measure_candidate = new Measure(MeasureEnum.COLUMN_VALUE, containment_sim_candidate, 1);
             double format_sim_candidate = format_similarity.getOrDefault(m, new Jaccard(0, 0, 0)).jcy();
-            Measure format_measure_candidate = new Measure(SimilarityMeasures.COLUMN_FORMAT, format_sim_candidate, 1);
-            Score score_candidate = new Score(new ArrayList<>());
-            score_candidate.addMeasure(table_name_measure);
-            score_candidate.addMeasure(column_name_measure);
-            score_candidate.addMeasure(containment_measure_candidate);
-            score_candidate.addMeasure(format_measure_candidate);
-            candidate_scores.getScoreMap().put(metadata.getId(), score_candidate);
+            Measure format_measure_candidate = new Measure(MeasureEnum.COLUMN_FORMAT, format_sim_candidate, 1);
+            MeasureList measure_list_candidate = new MeasureList(new ArrayList<>());
+            measure_list_candidate.addMeasure(table_name_measure);
+            measure_list_candidate.addMeasure(column_name_measure);
+            measure_list_candidate.addMeasure(containment_measure_candidate);
+            measure_list_candidate.addMeasure(format_measure_candidate);
+            candidate_scores.getScoreMap().put(metadata.getId(), measure_list_candidate);
             scores_list.add(candidate_scores);
         }
 
