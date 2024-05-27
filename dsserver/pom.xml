@@ -11,7 +11,7 @@
 	<groupId>rptu.thesis.npham</groupId>
 	<artifactId>dsserver</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>ds</name>
+	<name>dsserver</name>
 	<description>Thesis</description>
 	<properties>
 		<java.version>17</java.version>
@@ -41,13 +41,6 @@
 			<version>LATEST</version>
 		</dependency>
 		<dependency>
-			<groupId>lazo</groupId>
-			<artifactId>lazo</artifactId>
-			<version>0.1.0</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/src/main/resources/lib/lazo-0.1.0.jar</systemPath>
-		</dependency>
-		<dependency>
 			<groupId>com.clearspring.analytics</groupId>
 			<artifactId>stream</artifactId>
 			<version>LATEST</version>
@@ -57,7 +50,7 @@
 			<artifactId>ws4j</artifactId>
 			<version>1.0.2</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/src/main/resources/lib/ws4j-1.0.2-jar-with-dependencies.jar</systemPath>
+			<systemPath>${pom.basedir}/src/main/resources/lib/ws4j-1.0.2-jar-with-dependencies.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>
@@ -69,6 +62,17 @@
 			<artifactId>stanford-corenlp</artifactId>
 			<version>4.5.5</version>
 			<classifier>models</classifier>
+		</dependency>
+		<dependency>
+			<groupId>rptu.thesis.npham</groupId>
+			<artifactId>dscommon</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>lazo</groupId>
+			<artifactId>lazo</artifactId>
+			<version>0.1.0</version>
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 
