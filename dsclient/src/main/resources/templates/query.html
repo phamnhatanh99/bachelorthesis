@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Query</title>
+    <link th:href="@{/css/bootstrap.css}" href="../static/css/bootstrap.css" rel="stylesheet">
+</head>
+<body class="fs-5">
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark mb-3">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">Dataset Search</span>
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active disabled">Query</a>
+                </li>
+                <li class="nav-item">
+                    <a href="upload_file" class="nav-link">Upload file</a>
+                </li>
+                <li class="nav-item">
+                    <a href="upload_folder" class="nav-link">Upload folder</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <form action="#" th:action="@{/query}" th:object="${form}" method="post">
+            <div class="mb-3">
+                <label for="path" class="form-label">Path to file</label>
+                <input type="text" name="path" id="path" th:field="*{path}" class="form-control">
+            </div>
+            <div class="row mb-3">
+                <div class="col">
+                    <label for="limit" class="col-form-label">Limit</label>
+                    <input type="number" name="limit" id="limit" th:field="*{limit}" class="form-control" min="0" th:value="10">
+                </div>
+                <div class="col">
+                    <label for="threshold" class="col-form-label">Threshold</label>
+                    <input type="number" name="threshold" id="threshold" th:field="*{threshold}" class="form-control" min="0" max="1">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+
+    <div class="container text-danger mb-3" th:if="${error}">
+        <p class="text-center fw-bold" th:text="${error}"></p>
+    </div>
+
+<script th:src="@{/js/bootstrap.js}" src="../static/js/bootstrap.js"></script>
+</body>
+</html>

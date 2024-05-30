@@ -1,4 +1,4 @@
-package rptu.thesis.npham.dsserver.model.query;
+package rptu.thesis.npham.dscommon.model.query;
 
 public record SingleResult(String query, String candidate, double score) {
     @Override

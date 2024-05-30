@@ -2,6 +2,7 @@ package rptu.thesis.npham.dscommon.utils;
 
 import com.univocity.parsers.common.TextParsingException;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.io.ColumnIndexOutOfBoundsException;
 import tech.tablesaw.io.csv.CsvReadOptions;
 
 import java.nio.file.Path;
@@ -13,8 +14,8 @@ public class CSVReader {
         CsvReadOptions.Builder options = CsvReadOptions.builder(path.toString()).maxCharsPerColumn(32767).header(header);
         try {
             table = Table.read().csv(options.separator(',').build());
-        } catch (IllegalArgumentException e) {
-            System.out.println("Error reading file with comma separator");
+        } catch (IllegalArgumentException | ColumnIndexOutOfBoundsException e) {
+//            System.out.println("Error reading file with comma separator, attempting semicolon separator");
             table = Table.read().csv(options.separator(';').build());
         }
         table.setName(trimCSVSuffix(table.name()));

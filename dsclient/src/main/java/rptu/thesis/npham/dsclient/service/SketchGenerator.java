@@ -1,4 +1,4 @@
-package rptu.thesis.npham.dsclient.service.lazo;
+package rptu.thesis.npham.dsclient.service;
 
 import lazo.sketch.LazoSketch;
 import org.springframework.stereotype.Service;

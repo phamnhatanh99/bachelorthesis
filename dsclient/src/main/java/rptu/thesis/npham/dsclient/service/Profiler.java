@@ -1,9 +1,8 @@
-package rptu.thesis.npham.dsclient.service.profiler;
+package rptu.thesis.npham.dsclient.service;
 
 import lazo.sketch.LazoSketch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rptu.thesis.npham.dsclient.service.lazo.SketchGenerator;
 import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dscommon.model.metadata.Metadata;
 import rptu.thesis.npham.dscommon.model.sketch.Sketch;
@@ -14,6 +13,8 @@ import rptu.thesis.npham.dscommon.utils.StringUtils;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,11 +46,17 @@ public class Profiler {
      * @param table the table to extract metadata from
      * @return a list of metadata
      */
-    public List<Pair<Metadata, Sketches>> profile(Table table, String address) {
+    public List<Pair<Metadata, Sketches>> profile(Table table) {
         List<Pair<Metadata, Sketches>> result = new ArrayList<>();
         String table_name = StringUtils.normalize(table.name());
         String uuid = UUID.randomUUID().toString().replace("-","");
         int arity = table.columnCount();
+        String address;
+        try {
+            address = InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
         for (Column<?> column : table.columns()) {
             String column_name = StringUtils.normalize(column.name());
             String id = uuid + Constants.SEPARATOR + column_name;

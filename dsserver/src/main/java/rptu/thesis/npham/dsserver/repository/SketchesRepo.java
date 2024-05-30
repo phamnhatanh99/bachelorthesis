@@ -6,4 +6,5 @@ import rptu.thesis.npham.dscommon.model.sketch.Sketches;
 
 @Repository
 public interface SketchesRepo extends MongoRepository<Sketches, String> {
+    void deleteByIdStartsWith(String regex);
 }

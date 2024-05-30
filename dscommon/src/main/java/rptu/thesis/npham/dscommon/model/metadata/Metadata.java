@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import rptu.thesis.npham.dscommon.utils.Constants;
 
 @Document(collection = "metadata")
-@CompoundIndex(name = "unique_index", def="{'table_name' : 1, 'column_name' : 1, 'type' : 1, 'size': 1, 'arity': 1, 'address': 1}", unique = true)
+@CompoundIndex(name = "unique_index", def="{'table_name' : 1, 'column_name' : 1, 'type' : 1, 'size': 1, 'arity': 1}", unique = true)
 public class Metadata {
 
     @Id

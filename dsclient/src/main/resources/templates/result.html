@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Query Result</title>
+    <link th:href="@{/css/bootstrap.css}" href="../static/css/bootstrap.css" rel="stylesheet">
+</head>
+<body class="fs-5">
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark mb-3">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">Dataset Search</span>
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a href="query" class="nav-link">Query</a>
+                </li>
+                <li class="nav-item">
+                    <a href="upload_file" class="nav-link">Upload file</a>
+                </li>
+                <li class="nav-item">
+                    <a href="upload_folder" class="nav-link">Upload folder</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Query Column</th>
+                    <th scope="col">Matched Column</th>
+                    <th scope="col">Similarity</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="result, iStat: ${results.results()}">
+                    <th scope="row" th:text="${iStat.index + 1}"></th>
+                    <td th:text="${result.query()}"></td>
+                    <td th:text="${result.candidate()}"></td>
+                    <td th:text="${result.score()}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

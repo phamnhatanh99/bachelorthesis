@@ -1,30 +1,32 @@
 package rptu.thesis.npham.dsserver.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import rptu.thesis.npham.dscommon.model.dto.RequestObject;
+import rptu.thesis.npham.dscommon.model.metadata.Metadata;
+import rptu.thesis.npham.dscommon.model.query.QueryResults;
+import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dsserver.evaluation.Datasets;
 import rptu.thesis.npham.dsserver.evaluation.Evaluator;
 import rptu.thesis.npham.dsserver.exceptions.MetadataNotFoundException;
-import rptu.thesis.npham.dsserver.exceptions.NoScoreException;
-import rptu.thesis.npham.dscommon.model.metadata.Metadata;
-import rptu.thesis.npham.dscommon.model.query.QueryResults;
+import rptu.thesis.npham.dsserver.exceptions.TableNotFoundException;
 import rptu.thesis.npham.dsserver.model.similarity.Measure;
 import rptu.thesis.npham.dsserver.model.similarity.MeasureType;
 import rptu.thesis.npham.dsserver.model.similarity.Measures;
-import rptu.thesis.npham.dsserver.model.similarity.SimilarityScores;
 import rptu.thesis.npham.dsserver.repository.MetadataRepo;
-import rptu.thesis.npham.dsserver.repository.SimilarityScoresRepo;
-import rptu.thesis.npham.dsserver.service.SimilarityCalculator;
+import rptu.thesis.npham.dsserver.repository.SketchesRepo;
 import rptu.thesis.npham.dsserver.service.LSHIndex;
-import rptu.thesis.npham.dscommon.utils.Constants;
+import rptu.thesis.npham.dsserver.service.SimilarityCalculator;
 import rptu.thesis.npham.dsserver.utils.Jaccard;
 
 import java.util.*;
 
 @RestController
-public class QueryController {
+public class RestQueryController {
 
     private static final Map<MeasureType, Double> QUERY_MEASURES = new HashMap<>();
 
@@ -38,69 +40,73 @@ public class QueryController {
     }
 
     private final MetadataRepo metadata_repository;
-    private final SimilarityScoresRepo similarity_scores_repository;
+    private final SketchesRepo sketches_repository;
     private final SimilarityCalculator similarity_calculator;
     private final Evaluator evaluator;
-    private final LSHIndex LSHIndex;
+    private final LSHIndex lsh_index;
 
     @Autowired
-    public QueryController(MetadataRepo metadata_repository, SimilarityScoresRepo similarity_scores_repository, SimilarityCalculator similarity_calculator, Evaluator evaluator, LSHIndex LSHIndex) {
+    public RestQueryController(MetadataRepo metadata_repository, SketchesRepo sketches_repository, SimilarityCalculator similarity_calculator, Evaluator evaluator, LSHIndex lsh_index) {
         this.metadata_repository = metadata_repository;
-        this.similarity_scores_repository = similarity_scores_repository;
+        this.sketches_repository = sketches_repository;
         this.similarity_calculator = similarity_calculator;
         this.evaluator = evaluator;
-        this.LSHIndex = LSHIndex;
+        this.lsh_index = lsh_index;
     }
 
-    @GetMapping("id/{id}")
-    public QueryResults queryByID(@PathVariable String id) {
-        Optional<SimilarityScores> query = similarity_scores_repository.findById(id);
-        if (query.isEmpty()) throw new NoScoreException();
-        SimilarityScores scores = query.get();
-        Metadata metadata = metadata_repository.findById(id).orElseThrow(MetadataNotFoundException::new);
+    @PostMapping("/query")
+    public QueryResults query(@RequestBody List<RequestObject> request_objects,
+                              @RequestParam("limit") Optional<Integer> limit,
+                              @RequestParam("threshold") Optional<Double> threshold) {
+        boolean existed = false;
+        Metadata first_col = request_objects.get(0).metadata();
+        String table_id = first_col.getId().split(Constants.SEPARATOR, 2)[0];
 
-        QueryResults results = new QueryResults(new ArrayList<>());
-
-        scores.getScoreMap().entrySet().stream()
-                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
-                .filter(e -> e.getValue().average() > 0.0)
-                .forEach(e -> {
-                    Metadata m = metadata_repository.findById(e.getKey()).orElseThrow(MetadataNotFoundException::new);
-                    double avg = e.getValue().average();
-                    results.add(metadata.toString(), m.toString(), avg);
-                });
-
-        return results;
-    }
-
-    @GetMapping("table_id/{uuid}")
-    public QueryResults queryTable(@PathVariable String uuid) {
-        long start = System.currentTimeMillis();
-
-        List<Metadata> columns = metadata_repository.findByIdStartsWith(uuid);
-        if (columns.isEmpty()) throw new RuntimeException("Table not found");
-
-        QueryResults results = new QueryResults(new ArrayList<>());
-
-        for (Metadata metadata : columns) {
+        for (RequestObject request_object : request_objects) {
             try {
-                results.addAll(queryUsingCertainMeasures(metadata.getId()));
-            } catch (NoScoreException e) {
-                System.out.println("No score for " + metadata.getTableName() + " - " + metadata.getColumnName());
+                metadata_repository.save(request_object.metadata());
+                sketches_repository.save(request_object.sketches());
+                lsh_index.updateIndex(request_object.sketches());
+            } catch (DuplicateKeyException e) { // Table already exists in the database, query from the database instead
+                existed = true;
+                break;
             }
         }
 
-        results = results.withThreshold(0.5).limitResults(10);
+        List<Metadata> columns;
+        if (!existed) {
+            columns = metadata_repository.findByIdStartsWith(table_id);
+            if (columns.isEmpty()) throw new TableNotFoundException();
+        }
+        else {
+            Optional<Metadata> sample_col =
+                    metadata_repository.findByUniqueIndex(first_col.getTableName(), first_col.getColumnName(), first_col.getType(), first_col.getSize(), first_col.getArity());
+            String table_id_sample = sample_col.orElseThrow(MetadataNotFoundException::new).getId().split(Constants.SEPARATOR, 2)[0];
+            columns = metadata_repository.findByIdStartsWith(table_id_sample);
+        }
 
-        long end = System.currentTimeMillis();
-        System.out.println("Time taken: " + (end - start) + "ms");
+
+        QueryResults results = new QueryResults(new ArrayList<>());
+
+        for (Metadata metadata : columns)
+            results.addAll(queryUsingCertainMeasures(metadata.getId()));
+
+        results = results.sortResults();
+        if (threshold.isPresent()) results = results.withThreshold(threshold.get());
+        if (limit.isPresent()) results = results.limitResults(limit.get());
 
         evaluate(results);
+
+        if (!existed) {
+            metadata_repository.deleteByIdStartsWith(table_id);
+            sketches_repository.deleteByIdStartsWith(table_id);
+            request_objects.forEach(request_object -> lsh_index.removeSketchFromIndex(request_object.sketches().getId()));
+        }
+
         return results;
     }
 
-    @GetMapping("alt/id/{id}")
-    public QueryResults queryUsingCertainMeasures(@PathVariable String id) {
+    private QueryResults queryUsingCertainMeasures(String id) {
         QueryResults results = new QueryResults(new ArrayList<>());
         Metadata metadata = metadata_repository.findById(id).orElseThrow(MetadataNotFoundException::new);
         List<String> query_similar_types = Constants.typeInList(metadata.getType());
@@ -131,12 +137,12 @@ public class QueryController {
         else if (MeasureType.onlyLSH(QUERY_MEASURES.keySet())) {
             Map<MeasureType, Map<Metadata, Jaccard>> candidates = new HashMap<>();
             for (MeasureType measure : QUERY_MEASURES.keySet()) {
-               switch (measure) {
-                   case TABLE_NAME_SHINGLE -> candidates.put(measure, LSHIndex.queryTableName(metadata));
-                   case COLUMN_NAME_SHINGLE -> candidates.put(measure, LSHIndex.queryColumnName(metadata));
-                   case COLUMN_VALUE -> candidates.put(measure, LSHIndex.queryColumnValue(metadata));
-                   case COLUMN_FORMAT -> candidates.put(measure, LSHIndex.queryFormat(metadata));
-               }
+                switch (measure) {
+                    case TABLE_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryTableName(metadata));
+                    case COLUMN_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryColumnName(metadata));
+                    case COLUMN_VALUE -> candidates.put(measure, lsh_index.queryColumnValue(metadata));
+                    case COLUMN_FORMAT -> candidates.put(measure, lsh_index.queryFormat(metadata));
+                }
             }
 
             Jaccard default_jaccard = new Jaccard(0, 0, 0);
@@ -162,10 +168,10 @@ public class QueryController {
             Map<MeasureType, Map<Metadata, Jaccard>> candidates = new HashMap<>();
             for (MeasureType measure : QUERY_MEASURES.keySet()) {
                 switch (measure) {
-                    case TABLE_NAME_SHINGLE -> candidates.put(measure, LSHIndex.queryTableName(metadata));
-                    case COLUMN_NAME_SHINGLE -> candidates.put(measure, LSHIndex.queryColumnName(metadata));
-                    case COLUMN_VALUE -> candidates.put(measure, LSHIndex.queryColumnValue(metadata));
-                    case COLUMN_FORMAT -> candidates.put(measure, LSHIndex.queryFormat(metadata));
+                    case TABLE_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryTableName(metadata));
+                    case COLUMN_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryColumnName(metadata));
+                    case COLUMN_VALUE -> candidates.put(measure, lsh_index.queryColumnValue(metadata));
+                    case COLUMN_FORMAT -> candidates.put(measure, lsh_index.queryFormat(metadata));
                 }
             }
 
@@ -208,7 +214,7 @@ public class QueryController {
     }
 
     private void evaluate(QueryResults results) {
-        evaluator.loadGroundTruth(Datasets.NEXTIAJD_TRAINING);
+        evaluator.loadGroundTruth(Datasets.NEXTIAJD_XS);
         System.out.println("Returned " + results.results().size() + " results");
         double[] eval = evaluator.precisionAndRecall(results);
         System.out.println("Precision: " + eval[0]);
