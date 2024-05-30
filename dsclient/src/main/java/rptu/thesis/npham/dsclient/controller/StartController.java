@@ -134,7 +134,7 @@ public class StartController {
     @PostMapping("/query")
     public String sendQuery(@ModelAttribute("form") QueryForm form, Model model) {
         if (pathNotValid(form.getPath())) {
-            model.addAttribute("form", new Form(form.getPath()));
+            model.addAttribute("form", new QueryForm(form.getPath()));
             model.addAttribute("error", "Invalid path");
             return "query";
         }

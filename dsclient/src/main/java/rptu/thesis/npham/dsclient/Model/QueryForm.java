@@ -8,10 +8,8 @@ public class QueryForm extends Form {
         super();
     }
 
-    public QueryForm(String path, int limit, double threshold) {
+    public QueryForm(String path) {
         super(path);
-        this.limit = limit;
-        this.threshold = threshold;
     }
 
     public int getLimit() {

@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 @Service
 public class Profiler {
 
-    private static final Pattern ALPHANUMERIC = Pattern.compile("^(?:[0-9]+[a-zA-Z]|[a-zA-Z]+[0-9])[a-zA-Z0-9]*");;
+    private static final Pattern ALPHANUMERIC = Pattern.compile("^(?:[0-9]+[a-zA-Z]|[a-zA-Z]+[0-9])[a-zA-Z0-9]*");
     private static final Pattern CAPITALIZED = Pattern.compile("^[A-Z][a-z]+");
     private static final Pattern UPPERCASE = Pattern.compile("^[A-Z]+");
     private static final Pattern LOWERCASE = Pattern.compile("^[a-z]+");
