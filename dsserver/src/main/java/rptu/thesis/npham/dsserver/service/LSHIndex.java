@@ -23,7 +23,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 @Service
 public class LSHIndex {
-    private static final int N_PERMUTATIONS = 256;
+    private static final int N_PERMUTATIONS = 128;
     private static final float THRESHOLD = 0.5f;
     private static final ReentrantReadWriteLock LOCK = new ReentrantReadWriteLock(false);
 

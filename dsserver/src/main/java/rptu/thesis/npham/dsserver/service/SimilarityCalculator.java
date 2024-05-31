@@ -4,6 +4,7 @@ import edu.stanford.nlp.simple.Sentence;
 import edu.uniba.di.lacam.kdde.lexical_db.MITWordNet;
 import edu.uniba.di.lacam.kdde.ws4j.RelatednessCalculator;
 import edu.uniba.di.lacam.kdde.ws4j.similarity.Path;
+import edu.uniba.di.lacam.kdde.ws4j.similarity.WuPalmer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rptu.thesis.npham.dscommon.model.metadata.Metadata;
@@ -20,12 +21,12 @@ import java.util.Set;
 public class SimilarityCalculator {
 
     private final RelatednessCalculator rc;
-    private final LSHIndex LSHIndex;
+    private final LSHIndex index;
 
     @Autowired
-    public SimilarityCalculator(LSHIndex LSHIndex) {
-        rc = new Path(new MITWordNet());
-        this.LSHIndex = LSHIndex;
+    public SimilarityCalculator(LSHIndex index) {
+        rc = new WuPalmer(new MITWordNet());
+        this.index = index;
     }
 
     public double levenshteinSimilarity(String s1, String s2) {
@@ -62,18 +63,18 @@ public class SimilarityCalculator {
     }
 
     public Map<Metadata, Jaccard> tableNameShingleSimilarity(Metadata metadata) {
-        return LSHIndex.queryTableName(metadata);
+        return index.queryTableName(metadata);
     }
 
     public Map<Metadata, Jaccard> columnNameShingleSimilarity(Metadata metadata) {
-        return LSHIndex.queryColumnName(metadata);
+        return index.queryColumnName(metadata);
     }
 
     public Map<Metadata, Jaccard> columnValuesSimilarity(Metadata metadata) {
-        return LSHIndex.queryColumnValue(metadata);
+        return index.queryColumnValue(metadata);
     }
 
     public Map<Metadata, Jaccard> columnFormatSimilarity(Metadata metadata) {
-        return LSHIndex.queryFormat(metadata);
+        return index.queryFormat(metadata);
     }
 }
