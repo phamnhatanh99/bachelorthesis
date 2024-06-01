@@ -23,12 +23,17 @@
         </div>
     </nav>
 
+    <div class="container mb-3 text-center">
+        <span>Results for </span><span th:text="${results.results()[0].query().getTableName()}"></span>
+    </div>
+
     <div class="container">
         <table class="table">
             <thead>
                 <tr>
                     <th scope="col">#</th>
-                    <th scope="col">Query Column</th>
+                    <th scope="col">Column</th>
+                    <th scope="col">Matched Table</th>
                     <th scope="col">Matched Column</th>
                     <th scope="col">Similarity</th>
                 </tr>
@@ -36,8 +41,9 @@
             <tbody>
                 <tr th:each="result, iStat: ${results.results()}">
                     <th scope="row" th:text="${iStat.index + 1}"></th>
-                    <td th:text="${result.query()}"></td>
-                    <td th:text="${result.candidate()}"></td>
+                    <td th:text="${result.query().getColumnName()}"></td>
+                    <td th:text="${result.candidate().getTableName()}"></td>
+                    <td th:text="${result.candidate().getColumnName()}"></td>
                     <td th:text="${result.score()}"></td>
                 </tr>
             </tbody>

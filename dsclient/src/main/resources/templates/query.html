@@ -38,6 +38,13 @@
                     <label for="threshold" class="col-form-label">Threshold</label>
                     <input type="number" name="threshold" id="threshold" th:field="*{threshold}" class="form-control" min="0" max="1">
                 </div>
+                <div class="col">
+                    <label for="mode" class="col-form-label">Query mode</label>
+                    <select name="mode" id="mode" class="form-select" th:field="*{mode}">
+                        <option th:value="join" selected>Join</option>
+                        <option th:value="union">Union</option>
+                    </select>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>

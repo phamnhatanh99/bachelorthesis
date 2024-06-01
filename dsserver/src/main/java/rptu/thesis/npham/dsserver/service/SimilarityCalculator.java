@@ -3,7 +3,6 @@ package rptu.thesis.npham.dsserver.service;
 import edu.stanford.nlp.simple.Sentence;
 import edu.uniba.di.lacam.kdde.lexical_db.MITWordNet;
 import edu.uniba.di.lacam.kdde.ws4j.RelatednessCalculator;
-import edu.uniba.di.lacam.kdde.ws4j.similarity.Path;
 import edu.uniba.di.lacam.kdde.ws4j.similarity.WuPalmer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,11 +34,11 @@ public class SimilarityCalculator {
     }
 
     public double sentenceSimilarity(String sentence1, String sentence2) {
-        Sentence s1 = new Sentence(sentence1);
-        Sentence s2 = new Sentence(sentence2);
+        Sentence s1 = new Sentence(StringUtils.tokenize(sentence1));
+        Sentence s2 = new Sentence(StringUtils.tokenize(sentence2));
         List<String> l1 = s1.lemmas();
         List<String> l2 = s2.lemmas();
-        Set<String> lemma1 = new HashSet<>(rptu.thesis.npham.dscommon.utils.StringUtils.removeStopWords(l1));
+        Set<String> lemma1 = new HashSet<>(StringUtils.removeStopWords(l1));
         Set<String> lemma2 = new HashSet<>(StringUtils.removeStopWords(l2));
 
         double result = 0;

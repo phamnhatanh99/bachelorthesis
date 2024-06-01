@@ -28,17 +28,6 @@ import java.util.*;
 @RestController
 public class RestQueryController {
 
-    private static final Map<MeasureType, Double> QUERY_MEASURES = new HashMap<>();
-
-    static {
-//        QUERY_MEASURES.put(MeasureType.TABLE_NAME_WORDNET, 1d);
-//        QUERY_MEASURES.put(MeasureType.COLUMN_NAME_WORDNET, 2d);
-//        QUERY_MEASURES.put(MeasureType.TABLE_NAME_SHINGLE, 1d);
-//        QUERY_MEASURES.put(MeasureType.COLUMN_NAME_SHINGLE, 3d);
-        QUERY_MEASURES.put(MeasureType.COLUMN_VALUE, 3d);
-        QUERY_MEASURES.put(MeasureType.COLUMN_FORMAT, 2d);
-    }
-
     private final MetadataRepo metadata_repository;
     private final SketchesRepo sketches_repository;
     private final SimilarityCalculator similarity_calculator;
@@ -56,8 +45,30 @@ public class RestQueryController {
 
     @PostMapping("/query")
     public QueryResults query(@RequestBody List<RequestObject> request_objects,
+                              @RequestParam("mode") String mode,
                               @RequestParam("limit") Optional<Integer> limit,
                               @RequestParam("threshold") Optional<Double> threshold) {
+
+        List<MeasureType> query_measures = new ArrayList<>();
+
+        boolean is_join = false;
+
+        if (mode.equals("join")) {
+            System.out.println("Join mode");
+            is_join = true;
+            query_measures.add(MeasureType.TABLE_NAME_WORDNET);
+            query_measures.add(MeasureType.COLUMN_NAME_WORDNET);
+            query_measures.add(MeasureType.COLUMN_VALUE);
+            query_measures.add(MeasureType.COLUMN_FORMAT);
+        }
+        else {
+            System.out.println("Union mode");
+            query_measures.add(MeasureType.TABLE_NAME_SHINGLE);
+            query_measures.add(MeasureType.COLUMN_NAME_SHINGLE);
+            query_measures.add(MeasureType.COLUMN_VALUE);
+            query_measures.add(MeasureType.COLUMN_FORMAT);
+        }
+
         boolean existed = false;
         Metadata first_col = request_objects.get(0).metadata();
         String table_id = first_col.getId().split(Constants.SEPARATOR, 2)[0];
@@ -85,17 +96,16 @@ public class RestQueryController {
             columns = metadata_repository.findByIdStartsWith(table_id_sample);
         }
 
-
         QueryResults results = new QueryResults(new ArrayList<>());
 
         for (Metadata metadata : columns)
-            results.addAll(queryUsingCertainMeasures(metadata.getId()));
+            results.addAll(queryUsingCertainMeasures(metadata.getId(), is_join, query_measures));
 
         results = results.sortResults();
         if (threshold.isPresent()) results = results.withThreshold(threshold.get());
         if (limit.isPresent()) results = results.limitResults(limit.get());
 
-        evaluate(results);
+        evaluate(results, Datasets.NEXTIAJD_XS);
 
         if (!existed) {
             metadata_repository.deleteByIdStartsWith(table_id);
@@ -106,37 +116,42 @@ public class RestQueryController {
         return results;
     }
 
-    private QueryResults queryUsingCertainMeasures(String id) {
+    private QueryResults queryUsingCertainMeasures(String id, boolean is_join, List<MeasureType> query_measures) {
         QueryResults results = new QueryResults(new ArrayList<>());
         Metadata metadata = metadata_repository.findById(id).orElseThrow(MetadataNotFoundException::new);
         List<String> query_similar_types = Constants.typeInList(metadata.getType());
         String table_id = metadata.getId().split(Constants.SEPARATOR, 2)[0];
 
-        if (MeasureType.onlyWordNet(QUERY_MEASURES.keySet())) {
+        // If only WordNet measures are used, find columns with similar types and calculate WordNet similarity among them
+        if (MeasureType.onlyWordNet(query_measures)) {
             List<String> similar_types = Constants.typeInList(metadata.getType());
             List<Metadata> candidates = metadata_repository.findByIdNotStartsWithAndTypeIn(table_id, similar_types);
             for (Metadata candidate : candidates) {
                 Measures measure_list = new Measures(new ArrayList<>());
-                for (MeasureType measure : QUERY_MEASURES.keySet()) {
+                for (MeasureType measure : query_measures) {
                     switch (measure) {
                         case TABLE_NAME_WORDNET -> {
                             double sim = similarity_calculator.sentenceSimilarity(metadata.getTableName(), candidate.getTableName());
-                            Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
+                            Measure m = new Measure(measure, sim, MeasureType.getWeight(measure, is_join));
                             measure_list.addMeasure(m);
                         }
                         case COLUMN_NAME_WORDNET -> {
                             double sim = similarity_calculator.sentenceSimilarity(metadata.getColumnName(), candidate.getColumnName());
-                            Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
+                            Measure m = new Measure(measure, sim, MeasureType.getWeight(measure, is_join));
                             measure_list.addMeasure(m);
                         }
                     }
                 }
-                results.add(metadata.toString(), candidate.toString(), measure_list.average());
+                results.add(metadata, candidate, measure_list.average());
             }
         }
-        else if (MeasureType.onlyLSH(QUERY_MEASURES.keySet())) {
+        // If only LSH measures are used, the candidates are queried from the LSH indexes and unioned
+        // Filter the union to only candidates with similar types.
+        // For each candidate in the union, Jaccard similarity is calculated, if one candidate doesn't appear
+        // in one LSH index, the default Jaccard similarity is 0.
+        else if (MeasureType.onlyLSH(query_measures)) {
             Map<MeasureType, Map<Metadata, Jaccard>> candidates = new HashMap<>();
-            for (MeasureType measure : QUERY_MEASURES.keySet()) {
+            for (MeasureType measure : query_measures) {
                 switch (measure) {
                     case TABLE_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryTableName(metadata));
                     case COLUMN_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryColumnName(metadata));
@@ -156,17 +171,20 @@ public class RestQueryController {
 
             for (Metadata candidate : candidate_set) {
                 Measures measure_list = new Measures(new ArrayList<>());
-                for (MeasureType measure : QUERY_MEASURES.keySet()) {
-                    double sim = candidates.get(measure).getOrDefault(candidate, default_jaccard).jcx();
-                    Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
+                for (MeasureType measure : query_measures) {
+                    Jaccard jaccard = candidates.get(measure).getOrDefault(candidate, default_jaccard);
+                    double sim = is_join ? jaccard.jcx() : jaccard.js();
+                    Measure m = new Measure(measure, sim, MeasureType.getWeight(measure, is_join));
                     measure_list.addMeasure(m);
                 }
-                results.add(metadata.toString(), candidate.toString(), measure_list.average());
+                results.add(metadata, candidate, measure_list.average());
             }
         }
+        // If both WordNet and LSH measures are used, first retrieve candidates from LSH indexes like
+        // above, then calculate WordNet similarity among the candidates.
         else {
             Map<MeasureType, Map<Metadata, Jaccard>> candidates = new HashMap<>();
-            for (MeasureType measure : QUERY_MEASURES.keySet()) {
+            for (MeasureType measure : query_measures) {
                 switch (measure) {
                     case TABLE_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryTableName(metadata));
                     case COLUMN_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryColumnName(metadata));
@@ -186,35 +204,36 @@ public class RestQueryController {
 
             for (Metadata candidate : candidate_set) {
                 Measures measure_list = new Measures(new ArrayList<>());
-                for (MeasureType measure : QUERY_MEASURES.keySet()) {
+                for (MeasureType measure : query_measures) {
                     if (MeasureType.isLSH(measure)) {
-                        double sim = candidates.get(measure).getOrDefault(candidate, default_jaccard).jcx();
-                        Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
+                        Jaccard jaccard = candidates.get(measure).getOrDefault(candidate, default_jaccard);
+                        double sim = is_join ? jaccard.jcx() : jaccard.js();
+                        Measure m = new Measure(measure, sim, MeasureType.getWeight(measure, is_join));
                         measure_list.addMeasure(m);
                     }
                     else {
                         switch (measure) {
                             case TABLE_NAME_WORDNET -> {
                                 double sim = similarity_calculator.sentenceSimilarity(metadata.getTableName(), candidate.getTableName());
-                                Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
+                                Measure m = new Measure(measure, sim, MeasureType.getWeight(measure, is_join));
                                 measure_list.addMeasure(m);
                             }
                             case COLUMN_NAME_WORDNET -> {
                                 double sim = similarity_calculator.sentenceSimilarity(metadata.getColumnName(), candidate.getColumnName());
-                                Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
+                                Measure m = new Measure(measure, sim, MeasureType.getWeight(measure, is_join));
                                 measure_list.addMeasure(m);
                             }
                         }
                     }
                 }
-                results.add(metadata.toString(), candidate.toString(), measure_list.average());
+                results.add(metadata, candidate, measure_list.average());
             }
         }
         return results;
     }
 
-    private void evaluate(QueryResults results) {
-        evaluator.loadGroundTruth(Datasets.NEXTIAJD_XS);
+    private void evaluate(QueryResults results, Datasets dataset) {
+        evaluator.loadGroundTruth(dataset);
         System.out.println("Returned " + results.results().size() + " results");
         double[] eval = evaluator.precisionAndRecall(results);
         System.out.println("Precision: " + eval[0]);

@@ -1,5 +1,7 @@
 package rptu.thesis.npham.dscommon.model.query;
 
+import rptu.thesis.npham.dscommon.model.metadata.Metadata;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,7 +15,7 @@ public record QueryResults(List<SingleResult> results) {
         return builder.toString();
     }
 
-    public void add(String query, String candidate, double score) {
+    public void add(Metadata query, Metadata candidate, double score) {
         results.add(new SingleResult(query, candidate, score));
     }
 

@@ -51,9 +51,9 @@ public class Profiler {
         String table_name = StringUtils.normalize(table.name());
         String uuid = UUID.randomUUID().toString().replace("-","");
         int arity = table.columnCount();
-        String address;
+        Set<String> address = new HashSet<>();
         try {
-            address = InetAddress.getLocalHost().getHostAddress();
+            address.add(InetAddress.getLocalHost().getHostAddress());
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
@@ -71,7 +71,7 @@ public class Profiler {
         return result;
     }
 
-    private Metadata createMetadata(String id, String table_name, String column_name, String type, int size, int arity, String address) {
+    private Metadata createMetadata(String id, String table_name, String column_name, String type, int size, int arity, Set<String> address) {
         Metadata metadata = new Metadata();
         metadata.setId(id);
         metadata.setTableName(table_name);
@@ -79,7 +79,7 @@ public class Profiler {
         metadata.setType(type);
         metadata.setSize(size);
         metadata.setArity(arity);
-        metadata.setAddress(address);
+        metadata.setAddresses(address);
         return metadata;
     }
 

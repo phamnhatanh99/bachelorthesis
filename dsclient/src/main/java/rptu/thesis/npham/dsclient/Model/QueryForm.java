@@ -1,6 +1,8 @@
 package rptu.thesis.npham.dsclient.Model;
 
 public class QueryForm extends Form {
+
+    private String mode;
     private int limit;
     private double threshold;
 
@@ -26,5 +28,13 @@ public class QueryForm extends Form {
 
     public void setThreshold(double threshold) {
         this.threshold = threshold;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
     }
 }

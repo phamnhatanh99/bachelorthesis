@@ -67,7 +67,7 @@ public class QueryController {
                 .forEach(e -> {
                     Metadata m = metadata_repository.findById(e.getKey()).orElseThrow(MetadataNotFoundException::new);
                     double avg = e.getValue().average();
-                    results.add(metadata.toString(), m.toString(), avg);
+                    results.add(metadata, m, avg);
                 });
 
         return results;
@@ -125,7 +125,7 @@ public class QueryController {
                         }
                     }
                 }
-                results.add(metadata.toString(), candidate.toString(), measure_list.average());
+                results.add(metadata, candidate, measure_list.average());
             }
         }
         else if (MeasureType.onlyLSH(QUERY_MEASURES.keySet())) {
@@ -155,7 +155,7 @@ public class QueryController {
                     Measure m = new Measure(measure, sim, QUERY_MEASURES.get(measure));
                     measure_list.addMeasure(m);
                 }
-                results.add(metadata.toString(), candidate.toString(), measure_list.average());
+                results.add(metadata, candidate, measure_list.average());
             }
         }
         else {
@@ -201,7 +201,7 @@ public class QueryController {
                         }
                     }
                 }
-                results.add(metadata.toString(), candidate.toString(), measure_list.average());
+                results.add(metadata, candidate, measure_list.average());
             }
         }
         return results;

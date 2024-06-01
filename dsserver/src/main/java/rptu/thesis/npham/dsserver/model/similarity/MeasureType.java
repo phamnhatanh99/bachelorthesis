@@ -6,14 +6,14 @@ public enum MeasureType {
     TABLE_NAME_WORDNET, TABLE_NAME_SHINGLE, COLUMN_NAME_WORDNET, COLUMN_NAME_SHINGLE, COLUMN_VALUE, COLUMN_FORMAT;
 
     private static double TABLE_NAME_JOIN_WEIGHT = 1;
-    private static double COLUMN_NAME_JOIN_WEIGHT = 1;
-    private static double COLUMN_VALUES_JOIN_WEIGHT = 1;
+    private static double COLUMN_NAME_JOIN_WEIGHT = 2;
+    private static double COLUMN_VALUES_JOIN_WEIGHT = 2;
     private static double COLUMN_FORMAT_JOIN_WEIGHT = 1;
 
     private static double TABLE_NAME_UNION_WEIGHT = 1;
-    private static double COLUMN_NAME_UNION_WEIGHT = 1;
-    private static double COLUMN_VALUES_UNION_WEIGHT = 1;
-    private static double COLUMN_FORMAT_UNION_WEIGHT = 1;
+    private static double COLUMN_NAME_UNION_WEIGHT = 2;
+    private static double COLUMN_VALUES_UNION_WEIGHT = 2;
+    private static double COLUMN_FORMAT_UNION_WEIGHT = 3;
 
     public static boolean onlyWordNet(Collection<MeasureType> measures) {
         return measures.stream().allMatch(m -> m == TABLE_NAME_WORDNET || m == COLUMN_NAME_WORDNET);
@@ -25,6 +25,10 @@ public enum MeasureType {
 
     public static boolean isLSH(MeasureType measure) {
         return measure == TABLE_NAME_SHINGLE || measure == COLUMN_NAME_SHINGLE || measure == COLUMN_VALUE || measure == COLUMN_FORMAT;
+    }
+
+    public static double getWeight(MeasureType measure, boolean is_join) {
+        return is_join ? getJoinWeight(measure) : getUnionWeight(measure);
     }
 
     public static double getJoinWeight(MeasureType measure) {
@@ -43,6 +47,11 @@ public enum MeasureType {
             case COLUMN_VALUE -> COLUMN_VALUES_UNION_WEIGHT;
             case COLUMN_FORMAT -> COLUMN_FORMAT_UNION_WEIGHT;
         };
+    }
+
+    public static void setWeight(MeasureType measure, double weight, boolean is_join) {
+        if (is_join) setJoinWeight(measure, weight);
+        else setUnionWeight(measure, weight);
     }
 
     public static void setJoinWeight(MeasureType measure, double weight) {

@@ -9,7 +9,6 @@ import rptu.thesis.npham.dsserver.model.ground_truth.GroundTruth;
 import rptu.thesis.npham.dscommon.model.query.SingleResult;
 import rptu.thesis.npham.dsserver.repository.GroundTruthRepo;
 import rptu.thesis.npham.dscommon.utils.CSVReader;
-import rptu.thesis.npham.dscommon.utils.Constants;
 import tech.tablesaw.api.Table;
 
 import java.nio.file.Path;
@@ -41,7 +40,7 @@ public class Evaluator {
         {
             GroundTruth ground_truth = new GroundTruth(
                     CSVReader.trimCSVSuffix(row.getString(0)),
-                    rptu.thesis.npham.dscommon.utils.StringUtils.normalize(row.getString(1)),
+                    StringUtils.normalize(row.getString(1)),
                     CSVReader.trimCSVSuffix(row.getString(2)),
                     StringUtils.normalize(row.getString(3)));
             try {
@@ -60,12 +59,10 @@ public class Evaluator {
         Set<GroundTruth> ground_truths_set = new HashSet<>();
 
         for (SingleResult res : query_results.results()) {
-            String[] query = res.query().split(Constants.SEPARATOR, 2);
-            String query_table_name = query[0];
-            String query_column_name = query[1];
-            String[] candidate = res.candidate().split(Constants.SEPARATOR, 2);
-            String candidate_table_name = candidate[0];
-            String candidate_column_name = candidate[1];
+            String query_table_name = res.query().getTableName();
+            String query_column_name = res.query().getColumnName();
+            String candidate_table_name = res.candidate().getTableName();
+            String candidate_column_name = res.candidate().getColumnName();
 
             ground_truths_set.addAll(ground_truth_repository.findBySourceTableNameAndSourceColumnName(query_table_name, query_column_name));
 

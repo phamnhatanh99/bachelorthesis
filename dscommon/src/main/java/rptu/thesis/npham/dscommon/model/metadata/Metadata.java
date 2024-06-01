@@ -6,6 +6,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import rptu.thesis.npham.dscommon.utils.Constants;
 
+import java.util.Set;
+
 @Document(collection = "metadata")
 @CompoundIndex(name = "unique_index", def="{'table_name' : 1, 'column_name' : 1, 'type' : 1, 'size': 1, 'arity': 1}", unique = true)
 public class Metadata {
@@ -23,7 +25,7 @@ public class Metadata {
     @Field
     private int arity;
     @Field
-    private String address;
+    private Set<String> addresses;
 
     public Metadata() {}
 
@@ -75,12 +77,12 @@ public class Metadata {
         this.arity = arity;
     }
 
-    public String getAddress() {
-        return address;
+    public Set<String> getAddresses() {
+        return addresses;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setAddresses(Set<String> addresses) {
+        this.addresses = addresses;
     }
 
     @Override

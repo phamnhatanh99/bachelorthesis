@@ -153,6 +153,7 @@ public class StartController {
         QueryResults results = client.post()
                 .uri(builder -> builder
                         .path("/query")
+                        .queryParam("mode", form.getMode())
                         .queryParam("limit", form.getLimit())
                         .queryParam("threshold", form.getThreshold())
                         .build())
