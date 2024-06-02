@@ -26,6 +26,15 @@ public class Evaluator {
         this.ground_truth_repository = ground_truth_repository;
     }
 
+    public void evaluate(QueryResults results, Datasets dataset) {
+        loadGroundTruth(dataset);
+        System.out.println("Returned " + results.results().size() + " results");
+        double[] eval = precisionAndRecall(results);
+        System.out.println("Precision: " + eval[0]);
+        System.out.println("Recall: " + eval[1]);
+        System.out.println("F1: " + f1Score(eval[0], eval[1]));
+    }
+
     public void loadGroundTruth(Datasets dataset) {
         ground_truth_repository.deleteAll();
 
@@ -36,8 +45,7 @@ public class Evaluator {
 
         Table table = CSVReader.readTable(path, false);
 
-        table.forEach(row ->
-        {
+        table.forEach(row -> {
             GroundTruth ground_truth = new GroundTruth(
                     CSVReader.trimCSVSuffix(row.getString(0)),
                     StringUtils.normalize(row.getString(1)),

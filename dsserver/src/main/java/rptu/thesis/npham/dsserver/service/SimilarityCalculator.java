@@ -4,28 +4,21 @@ import edu.stanford.nlp.simple.Sentence;
 import edu.uniba.di.lacam.kdde.lexical_db.MITWordNet;
 import edu.uniba.di.lacam.kdde.ws4j.RelatednessCalculator;
 import edu.uniba.di.lacam.kdde.ws4j.similarity.WuPalmer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rptu.thesis.npham.dscommon.model.metadata.Metadata;
 import rptu.thesis.npham.dscommon.utils.StringUtils;
-import rptu.thesis.npham.dsserver.utils.Jaccard;
 import tech.tablesaw.util.LevenshteinDistance;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Service
 public class SimilarityCalculator {
 
     private final RelatednessCalculator rc;
-    private final LSHIndex index;
 
-    @Autowired
-    public SimilarityCalculator(LSHIndex index) {
+    public SimilarityCalculator() {
         rc = new WuPalmer(new MITWordNet());
-        this.index = index;
     }
 
     public double levenshteinSimilarity(String s1, String s2) {
@@ -54,26 +47,15 @@ public class SimilarityCalculator {
     private double wordSentenceMaxSimilarity(String lemma, Iterable<String> lemmas) {
         double result = 0;
         for (String l : lemmas) {
-            double similarity = rc.calcRelatednessOfWords(lemma, l);
+            double similarity;
+            try {
+                similarity = rc.calcRelatednessOfWords(lemma, l);
+            } catch (Exception e) {
+                similarity = 0;
+            }
             similarity = similarity > 0 ? similarity : levenshteinSimilarity(lemma, l);
             if (similarity > result) result = similarity;
         }
         return result;
-    }
-
-    public Map<Metadata, Jaccard> tableNameShingleSimilarity(Metadata metadata) {
-        return index.queryTableName(metadata);
-    }
-
-    public Map<Metadata, Jaccard> columnNameShingleSimilarity(Metadata metadata) {
-        return index.queryColumnName(metadata);
-    }
-
-    public Map<Metadata, Jaccard> columnValuesSimilarity(Metadata metadata) {
-        return index.queryColumnValue(metadata);
-    }
-
-    public Map<Metadata, Jaccard> columnFormatSimilarity(Metadata metadata) {
-        return index.queryFormat(metadata);
     }
 }

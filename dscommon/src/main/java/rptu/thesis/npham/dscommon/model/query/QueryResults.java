@@ -15,6 +15,9 @@ public record QueryResults(List<SingleResult> results) {
         return builder.toString();
     }
 
+    /**
+     * Add a new result to the result lists
+     */
     public void add(Metadata query, Metadata candidate, double score) {
         results.add(new SingleResult(query, candidate, score));
     }

@@ -1,7 +1,5 @@
 package rptu.thesis.npham.dsserver.model.similarity;
 
-import rptu.thesis.npham.dsserver.exceptions.MeasureAlreadyExistException;
-
 import java.util.List;
 
 public class Measures implements Comparable<Measures> {
@@ -14,7 +12,7 @@ public class Measures implements Comparable<Measures> {
 
     public void addMeasure(Measure measure) {
         if (measures.stream().anyMatch(m -> measure.measures() == m.measures()))
-            throw new MeasureAlreadyExistException();
+            throw new RuntimeException("Measure already exist in the list");
         measures.add(measure);
     }
 

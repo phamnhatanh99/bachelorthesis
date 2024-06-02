@@ -29,13 +29,13 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 @Controller
-public class StartController {
+public class AppController {
 
     private final WebClient client;
     private final Profiler profiler;
 
     @Autowired
-    public StartController(WebClient client, Profiler profiler) {
+    public AppController(WebClient client, Profiler profiler) {
         this.client = client;
         this.profiler = profiler;
     }
@@ -45,6 +45,9 @@ public class StartController {
         return "redirect:/query";
     }
 
+    /**
+     * Display the dataset upload form
+     */
     @GetMapping("/upload_file")
     public String uploadFile(Model model, @ModelAttribute("error") Optional<String> error, @ModelAttribute("success") Optional<String> success) {
         model.addAttribute("form", new Form());
@@ -53,6 +56,10 @@ public class StartController {
         return "upload_file";
     }
 
+    /**
+     * Retrieve the dataset using the path provided in the form and profile it, sending them
+     * as a request object to the server with Rest API
+     */
     @PostMapping("/upload_file")
     public String saveFile(@ModelAttribute("form") Form form, Model model) {
         model.addAttribute("form", new Form());
@@ -66,7 +73,12 @@ public class StartController {
             List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table);
             List<RequestObject> request_objects = metadata_list.stream().
                     map(pair -> new RequestObject(pair.first(), pair.second())).toList();
-            client.post().uri("/save").bodyValue(request_objects).retrieve().bodyToMono(Void.class).block();
+            client.post()
+                    .uri("/save")
+                    .bodyValue(request_objects)
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
             return "upload_file";
@@ -75,6 +87,9 @@ public class StartController {
         return "upload_file";
     }
 
+    /**
+     * Display the datasets upload form
+     */
     @GetMapping("/upload_folder")
     public String uploadFolder(Model model, @ModelAttribute("error") Optional<String> error, @ModelAttribute("warning") Optional<String> warning, @ModelAttribute("success") Optional<String> success) {
         model.addAttribute("form", new Form());
@@ -84,6 +99,10 @@ public class StartController {
         return "upload_folder";
     }
 
+    /**
+     * Retrieve the datasets using the path provided in the form and profile it, sending them
+     * as a request object to the server with Rest API
+     */
     @PostMapping("/upload_folder")
     public String saveFolder(@ModelAttribute("form") Form form, Model model) {
         model.addAttribute("form", new Form());
@@ -98,7 +117,7 @@ public class StartController {
             List<Path> files = paths.toList();
             List<String> skipped = new ArrayList<>();
             for (Path file: files) {
-//                System.out.println("Reading " + file.toString());
+                System.out.println("Reading " + file.toString());
                 Table table;
                 try {
                     table = CSVReader.readTable(file, true);
@@ -113,7 +132,12 @@ public class StartController {
             if (!skipped.isEmpty())
                 model.addAttribute("warning", "Skipped: " + String.join(", ", skipped));
             paths.close();
-            client.post().uri("/save").bodyValue(all_request_objects).retrieve().bodyToMono(Void.class).block();
+            client.post()
+                    .uri("/save")
+                    .bodyValue(all_request_objects)
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
             return "upload_folder";
@@ -122,6 +146,9 @@ public class StartController {
         return "upload_folder";
     }
 
+    /**
+     * Display the query form
+     */
     @GetMapping("/query")
     public String showQuery(Model model, @ModelAttribute("error") Optional<String> error) {
         QueryForm form = new QueryForm();
@@ -131,6 +158,11 @@ public class StartController {
         return "query";
     }
 
+    /**
+     * Retrieve the dataset using the path provided in the form and profile it, sending them
+     * as a request object to the server with Rest API. The query results are then retrieved
+     * and used to display the results in a separate page.
+     */
     @PostMapping("/query")
     public String sendQuery(@ModelAttribute("form") QueryForm form, Model model) {
         if (pathNotValid(form.getPath())) {
@@ -143,7 +175,7 @@ public class StartController {
         try {
             table = CSVReader.readTable(path, true);
         } catch (Exception e) {
-            model.addAttribute("form", new Form(form.getPath()));
+            model.addAttribute("form", new QueryForm(form.getPath()));
             model.addAttribute("error", e.getMessage());
             return "query";
         }
@@ -159,7 +191,6 @@ public class StartController {
                         .build())
                 .bodyValue(request_objects)
                 .retrieve().bodyToMono(QueryResults.class).block();
-        System.out.println(results);
         model.addAttribute("results", results);
         return "result";
     }
