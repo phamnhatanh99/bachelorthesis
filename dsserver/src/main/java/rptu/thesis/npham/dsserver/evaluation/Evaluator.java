@@ -9,6 +9,7 @@ import rptu.thesis.npham.dsserver.model.ground_truth.GroundTruth;
 import rptu.thesis.npham.dscommon.model.query.SingleResult;
 import rptu.thesis.npham.dsserver.repository.GroundTruthRepo;
 import rptu.thesis.npham.dscommon.utils.CSVReader;
+import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 import java.nio.file.Path;
@@ -45,16 +46,17 @@ public class Evaluator {
 
         Table table = CSVReader.readTable(path, false);
 
-        table.forEach(row -> {
-            GroundTruth ground_truth = new GroundTruth(
-                    CSVReader.trimCSVSuffix(row.getString(0)),
-                    StringUtils.normalize(row.getString(1)),
-                    CSVReader.trimCSVSuffix(row.getString(2)),
-                    StringUtils.normalize(row.getString(3)));
+        for (Row row : table) {
+            String source_table = CSVReader.trimCSVSuffix(row.getString(0));
+            String source_column = StringUtils.normalize(row.getString(1));
+            String target_table = CSVReader.trimCSVSuffix(row.getString(2));
+            String target_column = StringUtils.normalize(row.getString(3));
+            if (source_table.equals(target_table) && source_column.equals(target_column)) continue;
+            GroundTruth ground_truth = new GroundTruth(source_table, source_column, target_table, target_column);
             try {
                 ground_truth_repository.save(ground_truth);
             } catch (DuplicateKeyException ignored) {}
-        });
+        }
     }
 
     public double[] precisionAndRecall(QueryResults query_results) {
@@ -82,6 +84,7 @@ public class Evaluator {
 
         fn = ground_truths_set.size() - tp;
 
+        System.out.println("Ground truth size: " + ground_truths_set.size());
         System.out.println("TP: " + tp);
         System.out.println("FP: " + fp);
         System.out.println("FN: " + fn);

@@ -13,7 +13,7 @@ public enum MeasureType {
     private static double TABLE_NAME_UNION_WEIGHT = 1;
     private static double COLUMN_NAME_UNION_WEIGHT = 2;
     private static double COLUMN_VALUES_UNION_WEIGHT = 2;
-    private static double COLUMN_FORMAT_UNION_WEIGHT = 3;
+    private static double COLUMN_FORMAT_UNION_WEIGHT = 2;
 
     public static boolean onlyWordNet(Collection<MeasureType> measures) {
         return measures.stream().allMatch(m -> m == TABLE_NAME_WORDNET || m == COLUMN_NAME_WORDNET);

@@ -24,7 +24,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Service
 public class LSHIndex {
     private static final int N_PERMUTATIONS = 128;
-    private static final float THRESHOLD = 0.75f;
+    private static final float THRESHOLD = 0.7f;
     private static final ReentrantReadWriteLock LOCK = new ReentrantReadWriteLock(false);
 
     private LazoIndex table_name_index;

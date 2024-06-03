@@ -114,7 +114,7 @@ public class QueryController {
         if (threshold.isPresent()) results = results.withThreshold(threshold.get());
         if (limit.isPresent()) results = results.limitResults(limit.get());
 
-        evaluator.evaluate(results, Datasets.NEXTIAJD_XS);
+        evaluator.evaluate(results, Datasets.MUSICIANS_SEMJOINABLE);
 
         // Remove the query from the DB once finished
         if (!existed) {

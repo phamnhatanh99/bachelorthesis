@@ -15,7 +15,6 @@ public class CSVReader {
         try {
             table = Table.read().csv(options.separator(',').build());
         } catch (IllegalArgumentException | ColumnIndexOutOfBoundsException e) {
-//            System.out.println("Error reading file with comma separator, attempting semicolon separator");
             table = Table.read().csv(options.separator(';').build());
         }
         table.setName(trimCSVSuffix(table.name()));
@@ -23,6 +22,8 @@ public class CSVReader {
     }
 
     public static String trimCSVSuffix(String file_name) {
+        if (!file_name.toLowerCase().endsWith(".csv"))
+            return file_name;
         return file_name.toLowerCase().strip().substring(0, file_name.length() - 4);
     }
 

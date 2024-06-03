@@ -152,7 +152,8 @@ public class AppController {
     @GetMapping("/query")
     public String showQuery(Model model, @ModelAttribute("error") Optional<String> error) {
         QueryForm form = new QueryForm();
-        form.setLimit(10);
+        form.setLimit(100);
+        form.setThreshold(0.5);
         model.addAttribute("form", form);
         model.addAttribute("error", error.orElse(null));
         return "query";
