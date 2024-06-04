@@ -1,5 +1,6 @@
 package rptu.thesis.npham.dsclient;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
@@ -18,6 +19,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 })
 public class DSClientApplication {
 
+    @Value("${base.url}")
+    private String base_url;
+
     public static void main(String[] args) {
         SpringApplication.run(DSClientApplication.class, args);
     }
@@ -30,7 +34,7 @@ public class DSClientApplication {
                 .build();
         return WebClient.builder()
                 .exchangeStrategies(strategies)
-                .baseUrl("http://localhost:8080")
+                .baseUrl(base_url)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
