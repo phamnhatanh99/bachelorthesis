@@ -6,7 +6,9 @@ import org.springframework.web.bind.annotation.*;
 import rptu.thesis.npham.dscommon.model.dto.RequestObject;
 import rptu.thesis.npham.dscommon.model.metadata.Metadata;
 import rptu.thesis.npham.dscommon.model.query.QueryResults;
+import rptu.thesis.npham.dscommon.model.sketch.Sketches;
 import rptu.thesis.npham.dscommon.utils.Constants;
+import rptu.thesis.npham.dscommon.utils.MethodTimer;
 import rptu.thesis.npham.dsserver.evaluation.Datasets;
 import rptu.thesis.npham.dsserver.evaluation.Evaluator;
 import rptu.thesis.npham.dsserver.exceptions.MetadataNotFoundException;
@@ -20,6 +22,7 @@ import rptu.thesis.npham.dsserver.service.SimilarityCalculator;
 import rptu.thesis.npham.dsserver.utils.Jaccard;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 public class QueryController {
@@ -40,6 +43,26 @@ public class QueryController {
     }
 
     /**
+     * Rest end point to query all the tables in the database
+     */
+    @GetMapping("/queryAll")
+    public void queryAll() {
+        List<Metadata> all_metadata = metadata_repository.findAll();
+        Set<String> table_ids = all_metadata.stream().map(metadata ->
+                metadata.getId().split(Constants.SEPARATOR, 2)[0])
+                .collect(Collectors.toSet());
+        for (String table_id : table_ids) {
+            List<Metadata> columns = metadata_repository.findByIdStartsWith(table_id);
+            List<RequestObject> request_objects = new ArrayList<>();
+            for (Metadata metadata : columns) {
+                Sketches sketches = sketches_repository.findById(metadata.getId()).orElseThrow(MetadataNotFoundException::new);
+                request_objects.add(new RequestObject(metadata, sketches));
+            }
+            query(request_objects, "join", Optional.of(100), Optional.empty());
+        }
+    }
+
+    /**
      * Rest end point to perform a dataset search
      * @param request_objects Wrapper object that contains the metadatas and sketches of the columns of the query table
      * @param mode Query mode, either "join" or "union"
@@ -52,6 +75,8 @@ public class QueryController {
                               @RequestParam("mode") String mode,
                               @RequestParam("limit") Optional<Integer> limit,
                               @RequestParam("threshold") Optional<Double> threshold) {
+        MethodTimer timer = new MethodTimer("APIQuery");
+        timer.start();
 
         List<MeasureType> query_measures = new ArrayList<>();
         boolean is_join = false;
@@ -66,8 +91,6 @@ public class QueryController {
             query_measures.add(MeasureType.COLUMN_FORMAT);
         } else {
             System.out.println("Union mode");
-            query_measures.add(MeasureType.TABLE_NAME_SHINGLE);
-            query_measures.add(MeasureType.COLUMN_NAME_SHINGLE);
             query_measures.add(MeasureType.COLUMN_VALUE);
             query_measures.add(MeasureType.COLUMN_FORMAT);
         }
@@ -113,9 +136,6 @@ public class QueryController {
         results = results.sortResults();
         if (threshold.isPresent()) results = results.withThreshold(threshold.get());
         if (limit.isPresent()) results = results.limitResults(limit.get());
-
-        evaluator.evaluate(results, Datasets.MUSICIANS_SEMJOINABLE);
-
         // Remove the query from the DB once finished
         if (!existed) {
             metadata_repository.deleteByIdStartsWith(table_id);
@@ -123,6 +143,8 @@ public class QueryController {
             request_objects.forEach(request_object -> lsh_index.removeSketchFromIndex(request_object.sketches().getId()));
         }
 
+        timer.stop();
+        evaluator.evaluate(results, Datasets.TUS_S);
         return results;
     }
 

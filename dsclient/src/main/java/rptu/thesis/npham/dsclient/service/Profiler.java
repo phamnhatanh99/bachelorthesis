@@ -8,6 +8,7 @@ import rptu.thesis.npham.dscommon.model.metadata.Metadata;
 import rptu.thesis.npham.dscommon.model.sketch.Sketch;
 import rptu.thesis.npham.dscommon.model.sketch.Sketches;
 import rptu.thesis.npham.dscommon.model.sketch.SketchType;
+import rptu.thesis.npham.dscommon.utils.MethodTimer;
 import rptu.thesis.npham.dscommon.utils.Pair;
 import rptu.thesis.npham.dscommon.utils.StringUtils;
 import tech.tablesaw.api.Table;
@@ -101,6 +102,8 @@ public class Profiler {
     }
 
     private Sketch createNameSketch(String name, SketchType type) {
+        MethodTimer timer = new MethodTimer("NameSketch");
+        timer.start();
         int k = 4;
         Set<String> shingles = shingle(name, k);
         LazoSketch lazo_name_sketch = sketch_generator.createSketch(shingles);
@@ -108,15 +111,21 @@ public class Profiler {
     }
 
     private Sketch createColumnSketch(Column<?> column) {
+        MethodTimer timer = new MethodTimer("ColumnSketch");
+        timer.start();
         LazoSketch lazo_column_sketch = sketch_generator.createSketch(column);
         SketchType column_sketch_type;
         column_sketch_type = SketchType.COLUMN_VALUE;
+        timer.stop();
         return new Sketch(column_sketch_type, lazo_column_sketch.getCardinality(), lazo_column_sketch.getHashValues());
     }
 
     private Sketch createFormatSketch(Column<?> column) {
+        MethodTimer timer = new MethodTimer("FormatSketch");
+        timer.start();
         Set<String> format_patterns = generateFormatPatterns(column.asStringColumn().asSet());
         LazoSketch lazo_format_sketch = sketch_generator.createSketch(format_patterns);
+        timer.stop();
         return new Sketch(SketchType.FORMAT, lazo_format_sketch.getCardinality(), lazo_format_sketch.getHashValues());
     }
 

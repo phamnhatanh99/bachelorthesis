@@ -21,6 +21,7 @@ import java.util.Set;
 @Service
 public class Evaluator {
     private final GroundTruthRepo ground_truth_repository;
+    private Datasets current;
 
     @Autowired
     public Evaluator(GroundTruthRepo ground_truth_repository) {
@@ -28,7 +29,10 @@ public class Evaluator {
     }
 
     public void evaluate(QueryResults results, Datasets dataset) {
-        loadGroundTruth(dataset);
+        if (current != dataset) {
+            current = dataset;
+            loadGroundTruth(dataset);
+        }
         System.out.println("Returned " + results.results().size() + " results");
         double[] eval = precisionAndRecall(results);
         System.out.println("Precision: " + eval[0]);

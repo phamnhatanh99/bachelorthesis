@@ -5,9 +5,10 @@ public class MethodTimer {
     private long start;
     private long end;
     private long elapsed;
-    private String method_name;
+    private final String method_name;
 
     public MethodTimer() {
+        this.method_name = "";
         reset();
     }
 
@@ -24,16 +25,16 @@ public class MethodTimer {
 
     public void start() {
         reset();
-        System.out.println("Method: " + method_name);
         start = System.nanoTime();
     }
 
-    public void end() {
+    public void stop() {
         end = System.nanoTime();
         elapsed = end - start;
+        printElapsed();
     }
 
     public void printElapsed() {
-        System.out.println("Elapsed time: " + elapsed / 1000000 + " ms");
+        System.out.println("Method " + method_name + " finished in: " + elapsed / 1000000 + " ms");
     }
 }
