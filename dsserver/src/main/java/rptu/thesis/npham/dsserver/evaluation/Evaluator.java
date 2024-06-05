@@ -22,7 +22,6 @@ import java.util.Set;
 @Service
 public class Evaluator {
     private final GroundTruthRepo ground_truth_repository;
-    private Datasets current;
 
     @Autowired
     public Evaluator(GroundTruthRepo ground_truth_repository) {
