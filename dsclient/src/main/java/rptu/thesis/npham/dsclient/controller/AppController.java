@@ -11,12 +11,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import rptu.thesis.npham.dsclient.Model.Form;
 import rptu.thesis.npham.dsclient.Model.QueryForm;
 import rptu.thesis.npham.dsclient.service.Profiler;
-import rptu.thesis.npham.dscommon.model.dto.RequestObject;
-import rptu.thesis.npham.dscommon.model.metadata.Metadata;
+import rptu.thesis.npham.dscommon.model.dto.Summaries;
 import rptu.thesis.npham.dscommon.model.query.QueryResults;
-import rptu.thesis.npham.dscommon.model.sketch.Sketches;
 import rptu.thesis.npham.dscommon.utils.CSVReader;
-import rptu.thesis.npham.dscommon.utils.Pair;
+import rptu.thesis.npham.dscommon.utils.MethodTimer;
 import tech.tablesaw.api.Table;
 
 import java.io.File;
@@ -70,12 +68,10 @@ public class AppController {
         try {
             Path path = Path.of(form.getPath());
             Table table = CSVReader.readTable(path, true);
-            List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table);
-            List<RequestObject> request_objects = metadata_list.stream().
-                    map(pair -> new RequestObject(pair.first(), pair.second())).toList();
+            List<Summaries> summaries = profiler.profile(table);
             client.post()
                     .uri("/save")
-                    .bodyValue(request_objects)
+                    .bodyValue(summaries)
                     .retrieve()
                     .bodyToMono(Void.class)
                     .block();
@@ -111,11 +107,13 @@ public class AppController {
             model.addAttribute("error", "Invalid path");
             return "upload_folder";
         }
-        List<RequestObject> all_request_objects = new ArrayList<>();
+        List<Summaries> all_summaries = new ArrayList<>();
         try {
             Stream<Path> paths = Files.list(Paths.get(folder_path));
             List<Path> files = paths.toList();
             List<String> skipped = new ArrayList<>();
+            MethodTimer timer = new MethodTimer("Upload folder");
+            timer.start();
             for (Path file: files) {
                 System.out.println("Reading " + file.toString());
                 Table table;
@@ -125,16 +123,16 @@ public class AppController {
                     skipped.add(file.getFileName().toString());
                     continue;
                 }
-                List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table);
-                all_request_objects.addAll(metadata_list.stream().
-                        map(pair -> new RequestObject(pair.first(), pair.second())).toList());
+                List<Summaries> summaries = profiler.profile(table);
+                all_summaries.addAll(summaries);
             }
+            timer.stop();
             if (!skipped.isEmpty())
                 model.addAttribute("warning", "Skipped: " + String.join(", ", skipped));
             paths.close();
             client.post()
                     .uri("/save")
-                    .bodyValue(all_request_objects)
+                    .bodyValue(all_summaries)
                     .retrieve()
                     .bodyToMono(Void.class)
                     .block();
@@ -180,9 +178,7 @@ public class AppController {
             model.addAttribute("error", e.getMessage());
             return "query";
         }
-        List<Pair<Metadata, Sketches>> metadata_list = profiler.profile(table);
-        List<RequestObject> request_objects = metadata_list.stream().
-                map(pair -> new RequestObject(pair.first(), pair.second())).toList();
+        List<Summaries> summaries = profiler.profile(table);
         QueryResults results = client.post()
                 .uri(builder -> builder
                         .path("/query")
@@ -190,7 +186,7 @@ public class AppController {
                         .queryParam("limit", form.getLimit())
                         .queryParam("threshold", form.getThreshold())
                         .build())
-                .bodyValue(request_objects)
+                .bodyValue(summaries)
                 .retrieve().bodyToMono(QueryResults.class).block();
         model.addAttribute("results", results);
         return "result";

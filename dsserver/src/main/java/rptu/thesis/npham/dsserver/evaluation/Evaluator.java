@@ -3,6 +3,7 @@ package rptu.thesis.npham.dsserver.evaluation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dscommon.utils.StringUtils;
 import rptu.thesis.npham.dscommon.model.query.QueryResults;
 import rptu.thesis.npham.dsserver.model.ground_truth.GroundTruth;
@@ -28,11 +29,7 @@ public class Evaluator {
         this.ground_truth_repository = ground_truth_repository;
     }
 
-    public void evaluate(QueryResults results, Datasets dataset) {
-        if (current != dataset) {
-            current = dataset;
-            loadGroundTruth(dataset);
-        }
+    public void evaluate(QueryResults results) {
         System.out.println("Returned " + results.results().size() + " results");
         double[] eval = precisionAndRecall(results);
         System.out.println("Precision: " + eval[0]);
@@ -40,9 +37,11 @@ public class Evaluator {
         System.out.println("F1: " + f1Score(eval[0], eval[1]));
     }
 
-    public void loadGroundTruth(Datasets dataset) {
+    public void clearGroundTruth() {
         ground_truth_repository.deleteAll();
+    }
 
+    public void loadGroundTruth(Datasets dataset) {
         String folder_path = "C:\\Users\\alexa\\Desktop\\Evaluation\\ground_truths";
         String file_name = Datasets.getCSVFile(dataset);
         String file_path = folder_path + "\\" + file_name;
@@ -82,8 +81,12 @@ public class Evaluator {
 
             Optional<GroundTruth> ground_truth_o = ground_truth_repository.findBySourceTableNameAndTargetTableNameAndSourceColumnNameAndTargetColumnName(query_table_name, candidate_table_name, query_column_name, candidate_column_name);
 
-            if (ground_truth_o.isPresent()) tp++;
-            else fp++;
+            if (ground_truth_o.isPresent())
+                tp++;
+            else {
+                fp++;
+                System.out.println("False positive: " + query_column_name + " -> " + candidate_table_name + Constants.SEPARATOR + candidate_column_name);
+            }
         }
 
         fn = ground_truths_set.size() - tp;

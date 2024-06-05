@@ -3,7 +3,7 @@ package rptu.thesis.npham.dsserver.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.*;
-import rptu.thesis.npham.dscommon.model.dto.RequestObject;
+import rptu.thesis.npham.dscommon.model.dto.Summaries;
 import rptu.thesis.npham.dscommon.model.metadata.Metadata;
 import rptu.thesis.npham.dsserver.exceptions.MetadataNotFoundException;
 import rptu.thesis.npham.dsserver.repository.MetadataRepo;
@@ -29,8 +29,8 @@ public class SaveController {
     }
 
     @PostMapping("/save")
-    public void save(@RequestBody List<RequestObject> request_objects) {
-        for (RequestObject request_object : request_objects) {
+    public void save(@RequestBody List<Summaries> request_objects) {
+        for (Summaries request_object : request_objects) {
             try {
                 metadata_repository.save(request_object.metadata());
             } catch (DuplicateKeyException e) {

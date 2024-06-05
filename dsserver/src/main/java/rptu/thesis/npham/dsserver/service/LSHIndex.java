@@ -23,8 +23,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 @Service
 public class LSHIndex {
-    private static final int N_PERMUTATIONS = 128;
-    private static final float THRESHOLD = 0.6f;
+    private static final int N_PERMUTATIONS = 64;
+    private static final float THRESHOLD = 0.7f;
     private static final ReentrantReadWriteLock LOCK = new ReentrantReadWriteLock(false);
 
     private LazoIndex table_name_index;
@@ -64,7 +64,7 @@ public class LSHIndex {
      * Recreates the MinHash sketch from the hash values and cardinality in DB.
      */
     public LazoSketch recreateSketch(long cardinality, long[] hash_values) {
-        LazoSketch sketch = new LazoSketch(N_PERMUTATIONS);
+        LazoSketch sketch = new LazoSketch(N_PERMUTATIONS, lazo.sketch.SketchType.MINHASH_OPTIMAL);
         sketch.setCardinality(cardinality);
         sketch.setHashValues(hash_values);
         return sketch;
@@ -124,14 +124,14 @@ public class LSHIndex {
         Sketch sketch = findSketch(query, SketchType.TABLE_NAME);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
 
-        return queryContainment(table_name_index, lazo_sketch, query.getId());
+        return queryIndex(table_name_index, lazo_sketch, query.getId());
     }
 
     public Map<Metadata, Jaccard> queryColumnName(Metadata query) {
         Sketch sketch = findSketch(query, SketchType.COLUMN_NAME);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
 
-        return queryContainment(column_name_index, lazo_sketch, query.getId());
+        return queryIndex(column_name_index, lazo_sketch, query.getId());
     }
 
     /**
@@ -143,7 +143,7 @@ public class LSHIndex {
         Sketch sketch = findSketch(query, SketchType.COLUMN_VALUE);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
 
-        return queryContainment(column_value_index, lazo_sketch, query.getId());
+        return queryIndex(column_value_index, lazo_sketch, query.getId());
     }
 
     /**
@@ -155,7 +155,7 @@ public class LSHIndex {
         Sketch sketch = findSketch(query, SketchType.FORMAT);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
 
-        return queryContainment(format_index, lazo_sketch, query.getId());
+        return queryIndex(format_index, lazo_sketch, query.getId());
     }
 
     private Sketch findSketch(Metadata metadata, SketchType sketch_type) {
@@ -168,7 +168,7 @@ public class LSHIndex {
                 .orElseThrow(() -> new RuntimeException("No sketch of type " + sketch_type + " found"));
     }
 
-    private Map<Metadata, Jaccard> queryContainment(LazoIndex index, LazoSketch sketch, String query_id) {
+    private Map<Metadata, Jaccard> queryIndex(LazoIndex index, LazoSketch sketch, String query_id) {
         Map<Metadata, Jaccard> result = new HashMap<>();
         Set<LazoCandidate> candidates;
 

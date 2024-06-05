@@ -3,13 +3,13 @@ package rptu.thesis.npham.dsclient.service;
 import lazo.sketch.LazoSketch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import rptu.thesis.npham.dscommon.model.dto.Summaries;
 import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dscommon.model.metadata.Metadata;
 import rptu.thesis.npham.dscommon.model.sketch.Sketch;
 import rptu.thesis.npham.dscommon.model.sketch.Sketches;
 import rptu.thesis.npham.dscommon.model.sketch.SketchType;
 import rptu.thesis.npham.dscommon.utils.MethodTimer;
-import rptu.thesis.npham.dscommon.utils.Pair;
 import rptu.thesis.npham.dscommon.utils.StringUtils;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
@@ -35,6 +35,8 @@ public class Profiler {
     private static final Pattern WHITESPACE = Pattern.compile("^\\s+");
     private static final Pattern OTHER = Pattern.compile(".");
 
+    private static final int K = 4;
+
     private final SketchGenerator sketch_generator;
 
     @Autowired
@@ -43,12 +45,14 @@ public class Profiler {
     }
 
     /**
-     * Extracts metadata from a table.
-     * @param table the table to extract metadata from
-     * @return a list of metadata
+     * Summarize a table, creating metadata and sketches for each column.
+     * @param table the table to profile from
+     * @return a list of metadata and sketches for each column
      */
-    public List<Pair<Metadata, Sketches>> profile(Table table) {
-        List<Pair<Metadata, Sketches>> result = new ArrayList<>();
+    public List<Summaries> profile(Table table) {
+        MethodTimer timer1 = new MethodTimer("Profile table: " + table.name());
+        timer1.start();
+        List<Summaries> result = new ArrayList<>();
         String table_name = StringUtils.normalize(table.name());
         String uuid = UUID.randomUUID().toString().replace("-","");
         int arity = table.columnCount();
@@ -65,14 +69,18 @@ public class Profiler {
             int size = column.size();
 
             Metadata metadata = createMetadata(id, table_name, column_name, column_type, size, arity, address);
+            MethodTimer timer = new MethodTimer(table_name + Constants.SEPARATOR + column_name);
+            timer.start();
             Sketches sketches = createSketches(id, column, table_name, column_name);
+            timer.stop();
 
-            result.add(new Pair<>(metadata, sketches));
+            result.add(new Summaries(metadata, sketches));
         }
+        timer1.stop();
         return result;
     }
 
-    private Metadata createMetadata(String id, String table_name, String column_name, String type, int size, int arity, Set<String> address) {
+    public Metadata createMetadata(String id, String table_name, String column_name, String type, int size, int arity, Set<String> address) {
         Metadata metadata = new Metadata();
         metadata.setId(id);
         metadata.setTableName(table_name);
@@ -88,7 +96,7 @@ public class Profiler {
     /**
      * Creates sketches for a column.
      */
-    private Sketches createSketches(String id, Column<?> column, String table_name, String column_name) {
+    public Sketches createSketches(String id, Column<?> column, String table_name, String column_name) {
         Sketch table_name_sketch = createNameSketch(table_name, SketchType.TABLE_NAME);
         Sketch column_name_sketch = createNameSketch(column_name, SketchType.COLUMN_NAME);
         Sketch column_sketch = createColumnSketch(column);
@@ -101,39 +109,37 @@ public class Profiler {
         return sketches;
     }
 
-    private Sketch createNameSketch(String name, SketchType type) {
-        MethodTimer timer = new MethodTimer("NameSketch");
-        timer.start();
-        int k = 4;
-        Set<String> shingles = shingle(name, k);
+    public Sketch createNameSketch(String name, SketchType type) {
+        Set<String> shingles = shingle(name);
         LazoSketch lazo_name_sketch = sketch_generator.createSketch(shingles);
         return new Sketch(type, lazo_name_sketch.getCardinality(), lazo_name_sketch.getHashValues());
     }
 
-    private Sketch createColumnSketch(Column<?> column) {
-        MethodTimer timer = new MethodTimer("ColumnSketch");
-        timer.start();
-        LazoSketch lazo_column_sketch = sketch_generator.createSketch(column);
-        SketchType column_sketch_type;
-        column_sketch_type = SketchType.COLUMN_VALUE;
-        timer.stop();
-        return new Sketch(column_sketch_type, lazo_column_sketch.getCardinality(), lazo_column_sketch.getHashValues());
+    public Sketch createColumnSketch(Column<?> column) {
+//        LazoSketch lazo_column_sketch = sketch_generator.createSketch(column.asSet());
+        LazoSketch lazo_column_sketch = sketch_generator.createEmptySketch();
+        if (Constants.typeInList(column.type().name()).equals(Constants.STRINGY_TYPES)) {
+            for (String s: column.asStringColumn().asSet()) {
+                Set<String> shingles = shingle(s);
+                lazo_column_sketch = sketch_generator.updateSketch(shingles, lazo_column_sketch);
+            }
+        }
+        else {
+            lazo_column_sketch = sketch_generator.updateSketch(column, lazo_column_sketch);
+        }
+        return new Sketch(SketchType.COLUMN_VALUE, lazo_column_sketch.getCardinality(), lazo_column_sketch.getHashValues());
     }
 
-    private Sketch createFormatSketch(Column<?> column) {
-        MethodTimer timer = new MethodTimer("FormatSketch");
-        timer.start();
+    public Sketch createFormatSketch(Column<?> column) {
         Set<String> format_patterns = generateFormatPatterns(column.asStringColumn().asSet());
         LazoSketch lazo_format_sketch = sketch_generator.createSketch(format_patterns);
-        timer.stop();
         return new Sketch(SketchType.FORMAT, lazo_format_sketch.getCardinality(), lazo_format_sketch.getHashValues());
     }
 
-    private Set<String> shingle(String s, int k) {
-        if (k < 1) k = 4;
+    public Set<String> shingle(String s) {
         Set<String> res = new HashSet<>();
-        for (int i = 0; i < s.length() - k + 1; i++) {
-            res.add(s.substring(i, i + k));
+        for (int i = 0; i < s.length() - K + 1; i++) {
+            res.add(s.substring(i, i + K));
         }
         return res;
     }

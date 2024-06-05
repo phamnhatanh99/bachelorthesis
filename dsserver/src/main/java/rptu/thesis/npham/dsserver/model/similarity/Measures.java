@@ -16,6 +16,26 @@ public class Measures implements Comparable<Measures> {
         measures.add(measure);
     }
 
+    public void clear() {
+        measures.clear();
+    }
+
+    public boolean isEmpty() {
+        return measures.isEmpty();
+    }
+
+    public int totalWeight() {
+        return measures.stream()
+                .mapToInt(Measure::weight)
+                .sum();
+    }
+
+    public double weightedSum() {
+        return measures.stream()
+                .mapToDouble(m -> m.score() * m.weight())
+                .sum();
+    }
+
     public double average() {
         return measures.stream()
                 .mapToDouble(Measure::score)
