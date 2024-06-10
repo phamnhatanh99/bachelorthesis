@@ -19,7 +19,7 @@ import rptu.thesis.npham.dsserver.repository.MetadataRepo;
 import rptu.thesis.npham.dsserver.repository.SketchesRepo;
 import rptu.thesis.npham.dsserver.service.LSHIndex;
 import rptu.thesis.npham.dsserver.service.SimilarityCalculator;
-import rptu.thesis.npham.dsserver.utils.Jaccard;
+import rptu.thesis.npham.dsserver.utils.Score;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -71,23 +71,23 @@ public class QueryController {
                 Sketches sketches = sketches_repository.findById(metadata.getId()).orElseThrow(MetadataNotFoundException::new);
                 request_objects.add(new Summaries(metadata, sketches));
             }
-            query(request_objects, "join", Optional.of(100), 0d);
+            queryTable(request_objects, "join", Optional.of(100), 0d);
         }
     }
 
     /**
      * Rest end point to perform a dataset search
-     * @param request_objects Wrapper object that contains the metadatas and sketches of the columns of the query table
+     * @param summaries Wrapper object that contains the metadatas and sketches of the columns of the query table
      * @param mode Query mode, either "join" or "union"
      * @param limit The maximum amount of results to be returned
      * @param threshold The minimum score where a candidate is considered a match
      * @return The results of a query
      */
     @PostMapping("/query")
-    public QueryResults query(@RequestBody List<Summaries> request_objects,
-                              @RequestParam("mode") String mode,
-                              @RequestParam("limit") Optional<Integer> limit,
-                              @RequestParam("threshold") Double threshold) {
+    public QueryResults queryTable(@RequestBody List<Summaries> summaries,
+                                   @RequestParam("mode") String mode,
+                                   @RequestParam("limit") Optional<Integer> limit,
+                                   @RequestParam("threshold") Double threshold) {
         MethodTimer timer = new MethodTimer("APIQuery");
         timer.start();
 
@@ -113,40 +113,45 @@ public class QueryController {
         // Boolean to check if the table being queried already exists in DB
         boolean existed = false;
         // All metadatas in the request come from the same table, so only need to retrieve the table id from the first metadata
-        Metadata first_col = request_objects.get(0).metadata();
+        Metadata first_col = summaries.get(0).metadata();
         String table_id = first_col.getId().split(Constants.SEPARATOR, 2)[0];
 
         // Attempt to save the metadatas into DB for querying
-        for (Summaries request_object : request_objects) {
+        for (Summaries request_object : summaries) {
             try {
                 metadata_repository.save(request_object.metadata());
-                sketches_repository.save(request_object.sketches());
-                lsh_index.updateIndex(request_object.sketches());
             } catch (DuplicateKeyException e) { // Table already exists in the database, don't save and query from the database instead
                 existed = true;
                 break;
             }
+            sketches_repository.save(request_object.sketches());
+            lsh_index.updateIndex(request_object.sketches());
         }
 
         List<Metadata> columns;
-        // Query table is not in DB, so we can retrieve the metadatas from its original uuid
+        // Query table is not in DB, so we retrieve the metadatas from the request object
         if (!existed) {
-            columns = metadata_repository.findByIdStartsWith(table_id); // Can also just get the metadatas from the RequestObjects
-            if (columns.isEmpty()) throw new RuntimeException("Table not found");
+            columns = summaries.stream().map(Summaries::metadata).collect(Collectors.toCollection(ArrayList::new));
         }
         // Query table is in DB, but the uuid generated is different, so we query the DB using the unique index instead
         else {
-            Optional<Metadata> sample_col =
-                    metadata_repository.findByUniqueIndex(
-                            first_col.getTableName(), first_col.getColumnName(), first_col.getType(), first_col.getSize(), first_col.getArity());
-            String table_id_sample = sample_col.orElseThrow(MetadataNotFoundException::new).getId().split(Constants.SEPARATOR, 2)[0];
-            columns = metadata_repository.findByIdStartsWith(table_id_sample);
+            columns = new ArrayList<>();
+            for (Summaries request_object : summaries) {
+                Metadata metadata = metadata_repository.findByUniqueIndex(
+                        request_object.metadata().getTableName(),
+                        request_object.metadata().getColumnName(),
+                        request_object.metadata().getType(),
+                        request_object.metadata().getSize(),
+                        request_object.metadata().getArity())
+                        .orElseThrow(MetadataNotFoundException::new);
+                columns.add(metadata);
+            }
         }
 
         QueryResults results = new QueryResults(new ArrayList<>());
 
         for (Metadata metadata : columns)
-            results.addAll(queryUsingCertainMeasures(metadata, is_join, query_measures, threshold));
+            results.addAll(queryColumn(metadata, is_join, query_measures, threshold));
 
         results = results.sortResults();
         results = results.withThreshold(threshold);
@@ -155,7 +160,7 @@ public class QueryController {
         if (!existed) {
             metadata_repository.deleteByIdStartsWith(table_id);
             sketches_repository.deleteByIdStartsWith(table_id);
-            request_objects.forEach(request_object -> lsh_index.removeSketchFromIndex(request_object.sketches().getId()));
+            summaries.forEach(request_object -> lsh_index.removeSketchFromIndex(request_object.sketches().getId()));
         }
 
         timer.stop();
@@ -170,7 +175,7 @@ public class QueryController {
      * @param query_measures The similarity measures used for the query
      * @return The query results
      */
-    private QueryResults queryUsingCertainMeasures(Metadata metadata, boolean is_join, List<MeasureType> query_measures, double threshold) {
+    public QueryResults queryColumn(Metadata metadata, boolean is_join, List<MeasureType> query_measures, double threshold) {
         QueryResults results = new QueryResults(new ArrayList<>());
         // If only WordNet measures are used, find columns with similar types and calculate WordNet similarity among them
         if (MeasureType.onlyWordNet(query_measures))
@@ -218,7 +223,7 @@ public class QueryController {
         QueryResults results = new QueryResults(new ArrayList<>());
         List<String> similar_types = Constants.typeInList(metadata.getType());
 
-        Map<MeasureType, Map<Metadata, Jaccard>> candidates = mapMeasureTypeToCandidates(metadata, query_measures);
+        Map<MeasureType, Map<Metadata, Score>> candidates = mapMeasureTypeToCandidates(metadata, query_measures);
 
         Set<Metadata> candidate_set = unionCandidates(candidates, similar_types);
 
@@ -244,7 +249,7 @@ public class QueryController {
         QueryResults results = new QueryResults(new ArrayList<>());
         List<String> similar_types = Constants.typeInList(metadata.getType());
 
-        Map<MeasureType, Map<Metadata, Jaccard>> candidates = mapMeasureTypeToCandidates(metadata, query_measures);
+        Map<MeasureType, Map<Metadata, Score>> candidates = mapMeasureTypeToCandidates(metadata, query_measures);
         Set<Metadata> candidate_set = unionCandidates(candidates, similar_types);
 
         for (Metadata candidate : candidate_set) {
@@ -284,12 +289,12 @@ public class QueryController {
     /**
      * Map each type of measure to its corresponding candidate map
      */
-    private Map<MeasureType, Map<Metadata, Jaccard>> mapMeasureTypeToCandidates(Metadata metadata, List<MeasureType> query_measures) {
-        Map<MeasureType, Map<Metadata, Jaccard>> candidates = new HashMap<>();
+    private Map<MeasureType, Map<Metadata, Score>> mapMeasureTypeToCandidates(Metadata metadata, List<MeasureType> query_measures) {
+        Map<MeasureType, Map<Metadata, Score>> candidates = new HashMap<>();
         for (MeasureType measure : query_measures) {
             switch (measure) {
-                case TABLE_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryTableName(metadata));
-                case COLUMN_NAME_SHINGLE -> candidates.put(measure, lsh_index.queryColumnName(metadata));
+                case TABLE_NAME_QGRAM -> candidates.put(measure, lsh_index.queryTableName(metadata));
+                case COLUMN_NAME_QGRAM -> candidates.put(measure, lsh_index.queryColumnName(metadata));
                 case COLUMN_VALUE -> candidates.put(measure, lsh_index.queryColumnValue(metadata));
                 case COLUMN_FORMAT -> candidates.put(measure, lsh_index.queryFormat(metadata));
             }
@@ -300,9 +305,9 @@ public class QueryController {
     /**
      * Union all the candidates from each measure type into a set
      */
-    private Set<Metadata> unionCandidates(Map<MeasureType, Map<Metadata, Jaccard>> candidates, List<String> similar_types) {
+    private Set<Metadata> unionCandidates(Map<MeasureType, Map<Metadata, Score>> candidates, List<String> similar_types) {
         Set<Metadata> candidate_set = new HashSet<>();
-        for (Map<Metadata, Jaccard> candidate_map : candidates.values()) {
+        for (Map<Metadata, Score> candidate_map : candidates.values()) {
             for (Metadata m : candidate_map.keySet()) {
                 if (similar_types.contains(m.getType()))
                     candidate_set.add(m);
@@ -327,14 +332,14 @@ public class QueryController {
         return m;
     }
 
-    private Measure calculateLSHMeasure(MeasureType measure, Metadata candidate, boolean is_join, Map<MeasureType, Map<Metadata, Jaccard>> candidates) {
+    private Measure calculateLSHMeasure(MeasureType measure, Metadata candidate, boolean is_join, Map<MeasureType, Map<Metadata, Score>> candidates) {
         // For each candidate in the union set, Jaccard similarity is calculated,
         // if one candidate doesn't appear in one LSH index, the default Jaccard similarity is 0.
         // For column value similarity, use Jaccard containment instead if query mode is join
-        Jaccard jaccard = candidates.get(measure).getOrDefault(candidate, new Jaccard(0, 0, 0));
-        double sim = jaccard.js();
+        Score score = candidates.get(measure).getOrDefault(candidate, new Score(0, 0, 0));
+        double sim = score.js();
         if (measure.equals(MeasureType.COLUMN_VALUE) && is_join)
-            sim = jaccard.jcx();
+            sim = score.jcx();
         return new Measure(measure, sim, MeasureType.getWeight(measure, is_join));
     }
 }

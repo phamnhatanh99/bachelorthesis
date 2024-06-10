@@ -6,10 +6,10 @@ import rptu.thesis.npham.dscommon.model.sketch.SketchType;
 
 public class ProfilerTest {
 
-    private final Profiler profiler = new Profiler(new SketchGenerator());
+    private final Profiler profiler = new Profiler();
 
     @Test
-    void shingleTest() {
+    void qGramTest() {
         String s = "Day";
         Sketch sketch = profiler.createNameSketch(s, SketchType.COLUMN_NAME);
         System.out.println(sketch);

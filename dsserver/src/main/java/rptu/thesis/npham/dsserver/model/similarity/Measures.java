@@ -11,7 +11,7 @@ public class Measures implements Comparable<Measures> {
     }
 
     public void addMeasure(Measure measure) {
-        if (measures.stream().anyMatch(m -> measure.measures() == m.measures()))
+        if (measures.stream().anyMatch(m -> measure.measure() == m.measure()))
             throw new RuntimeException("Measure already exist in the list");
         measures.add(measure);
     }
@@ -56,7 +56,7 @@ public class Measures implements Comparable<Measures> {
 
     @Override
     public int compareTo(Measures o) {
-        return Double.compare(this.average(), o.average());
+        return Double.compare(this.weightedAverage(), o.weightedAverage());
     }
 
     @Override

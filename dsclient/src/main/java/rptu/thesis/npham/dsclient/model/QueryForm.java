@@ -1,4 +1,4 @@
-package rptu.thesis.npham.dsclient.Model;
+package rptu.thesis.npham.dsclient.model;
 
 public class QueryForm extends Form {
 

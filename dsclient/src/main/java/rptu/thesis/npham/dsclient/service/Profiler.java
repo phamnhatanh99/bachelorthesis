@@ -1,7 +1,6 @@
 package rptu.thesis.npham.dsclient.service;
 
 import lazo.sketch.LazoSketch;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rptu.thesis.npham.dscommon.model.dto.Summaries;
 import rptu.thesis.npham.dscommon.utils.Constants;
@@ -35,13 +34,12 @@ public class Profiler {
     private static final Pattern WHITESPACE = Pattern.compile("^\\s+");
     private static final Pattern OTHER = Pattern.compile(".");
 
-    private static final int K = 4;
+    private static final int Q = 4;
 
-    private final SketchGenerator sketch_generator;
+    private final LazoSketchGenerator sketch_generator;
 
-    @Autowired
-    public Profiler(SketchGenerator sketch_generator) {
-        this.sketch_generator = sketch_generator;
+    public Profiler() {
+        this.sketch_generator = new LazoSketchGenerator();
     }
 
     /**
@@ -110,22 +108,21 @@ public class Profiler {
     }
 
     public Sketch createNameSketch(String name, SketchType type) {
-        Set<String> shingles = shingle(name);
-        LazoSketch lazo_name_sketch = sketch_generator.createSketch(shingles);
+        Set<String> q_gram_sets = qGram(name);
+        LazoSketch lazo_name_sketch = sketch_generator.createSketch(q_gram_sets);
         return new Sketch(type, lazo_name_sketch.getCardinality(), lazo_name_sketch.getHashValues());
     }
 
     public Sketch createColumnSketch(Column<?> column) {
-//        LazoSketch lazo_column_sketch = sketch_generator.createSketch(column.asSet());
         LazoSketch lazo_column_sketch = sketch_generator.createEmptySketch();
         if (Constants.typeInList(column.type().name()).equals(Constants.STRINGY_TYPES)) {
             for (String s: column.asStringColumn().asSet()) {
-                Set<String> shingles = shingle(s);
+                Set<String> shingles = qGram(s);
                 lazo_column_sketch = sketch_generator.updateSketch(shingles, lazo_column_sketch);
             }
         }
         else {
-            lazo_column_sketch = sketch_generator.updateSketch(column, lazo_column_sketch);
+            lazo_column_sketch = sketch_generator.updateSketch(column.asSet(), lazo_column_sketch);
         }
         return new Sketch(SketchType.COLUMN_VALUE, lazo_column_sketch.getCardinality(), lazo_column_sketch.getHashValues());
     }
@@ -136,10 +133,10 @@ public class Profiler {
         return new Sketch(SketchType.FORMAT, lazo_format_sketch.getCardinality(), lazo_format_sketch.getHashValues());
     }
 
-    public Set<String> shingle(String s) {
+    public Set<String> qGram(String s) {
         Set<String> res = new HashSet<>();
-        for (int i = 0; i < s.length() - K + 1; i++) {
-            res.add(s.substring(i, i + K));
+        for (int i = 0; i < s.length() - Q + 1; i++) {
+            res.add(s.substring(i, i + Q));
         }
         return res;
     }
@@ -148,8 +145,7 @@ public class Profiler {
         Set<String> result = new HashSet<>();
         for (String value : column) {
             if (value != null && !value.trim().isEmpty()) {
-                String tokenizedValue = fdTokenize(value.replaceAll("\n", " ").trim());
-                result.add(getRegExString(tokenizedValue));
+                result.add(formatRegex(value));
             }
         }
         return result;
@@ -158,7 +154,9 @@ public class Profiler {
     /**
      * Adapted from <a href="https://doi.org/10.1109/ICDE48307.2020.00067">Dataset discovery in data lakes</a>
      */
-    private static String fdTokenize(String str) {
+    private static String formatRegex(String str) {
+        str = str.replaceAll("\n", " ").trim();
+
         StringBuilder result = new StringBuilder();
         while (!str.isEmpty()) {
             Matcher a = ALPHANUMERIC.matcher(str);
@@ -198,7 +196,7 @@ public class Profiler {
                 break;
             }
         }
-        return result.toString();
+        return getRegExString(result.toString());
     }
 
     private static String getRegExString(String str) {

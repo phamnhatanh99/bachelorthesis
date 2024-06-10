@@ -2,18 +2,15 @@ package rptu.thesis.npham.dsclient.service;
 
 import lazo.sketch.LazoSketch;
 import lazo.sketch.SketchType;
-import org.springframework.stereotype.Service;
 
-@Service
-public class SketchGenerator {
-    private static final int N_PERMUTATIONS = 64;
+public class LazoSketchGenerator {
+    private static final int N_PERMUTATIONS = 128;
 
     /**
      * Creates a new MinHash sketch from an iterable (e.g. a column).
      */
     public LazoSketch createSketch(Iterable<?> iterable) {
-        LazoSketch sketch = createEmptySketch();
-        return updateSketch(iterable, sketch);
+        return updateSketch(iterable, createEmptySketch());
     }
 
     public LazoSketch createEmptySketch() {
@@ -28,6 +25,7 @@ public class SketchGenerator {
         }
         for (Object value: iterable) {
             if (value == null) sketch.update("");
+            else if (value instanceof Boolean b) sketch.update(b ? "1" : "0");
             else sketch.update(value.toString().trim());
         }
         return sketch;

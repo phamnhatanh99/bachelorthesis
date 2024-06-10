@@ -12,6 +12,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Calculate semantic similarity between two strings using WordNet and Levenshtein distance
+ */
 @Service
 public class SimilarityCalculator {
 

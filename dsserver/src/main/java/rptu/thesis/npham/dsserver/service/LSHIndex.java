@@ -13,7 +13,7 @@ import rptu.thesis.npham.dscommon.model.sketch.Sketch;
 import rptu.thesis.npham.dscommon.model.sketch.Sketches;
 import rptu.thesis.npham.dsserver.repository.MetadataRepo;
 import rptu.thesis.npham.dsserver.repository.SketchesRepo;
-import rptu.thesis.npham.dsserver.utils.Jaccard;
+import rptu.thesis.npham.dsserver.utils.Score;
 
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -23,7 +23,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 @Service
 public class LSHIndex {
-    private static final int N_PERMUTATIONS = 64;
+    private static final int N_PERMUTATIONS = 128;
     private static final float THRESHOLD = 0.7f;
     private static final ReentrantReadWriteLock LOCK = new ReentrantReadWriteLock(false);
 
@@ -120,14 +120,14 @@ public class LSHIndex {
         }
     }
 
-    public Map<Metadata, Jaccard> queryTableName(Metadata query) {
+    public Map<Metadata, Score> queryTableName(Metadata query) {
         Sketch sketch = findSketch(query, SketchType.TABLE_NAME);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
 
         return queryIndex(table_name_index, lazo_sketch, query.getId());
     }
 
-    public Map<Metadata, Jaccard> queryColumnName(Metadata query) {
+    public Map<Metadata, Score> queryColumnName(Metadata query) {
         Sketch sketch = findSketch(query, SketchType.COLUMN_NAME);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
 
@@ -139,7 +139,7 @@ public class LSHIndex {
      * @param query the metadata of the dataset to query.
      * @return a map of the candidates and their corresponding Jaccard coefficient.
      */
-    public Map<Metadata, Jaccard> queryColumnValue(Metadata query) {
+    public Map<Metadata, Score> queryColumnValue(Metadata query) {
         Sketch sketch = findSketch(query, SketchType.COLUMN_VALUE);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
 
@@ -151,7 +151,7 @@ public class LSHIndex {
      * @param query the metadata of the dataset to query.
      * @return a map of the candidates and their corresponding Jaccard coefficient.
      */
-    public Map<Metadata, Jaccard> queryFormat(Metadata query) {
+    public Map<Metadata, Score> queryFormat(Metadata query) {
         Sketch sketch = findSketch(query, SketchType.FORMAT);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
 
@@ -168,8 +168,8 @@ public class LSHIndex {
                 .orElseThrow(() -> new RuntimeException("No sketch of type " + sketch_type + " found"));
     }
 
-    private Map<Metadata, Jaccard> queryIndex(LazoIndex index, LazoSketch sketch, String query_id) {
-        Map<Metadata, Jaccard> result = new HashMap<>();
+    private Map<Metadata, Score> queryIndex(LazoIndex index, LazoSketch sketch, String query_id) {
+        Map<Metadata, Score> result = new HashMap<>();
         Set<LazoCandidate> candidates;
 
         String query_id_table = query_id.split(Constants.SEPARATOR, 2)[0];
@@ -190,8 +190,8 @@ public class LSHIndex {
             if (query.isEmpty()) throw new MetadataNotFoundException();
             Metadata metadata = query.get();
 
-            Jaccard jaccard = new Jaccard(candidate.js, candidate.jcx, candidate.jcy);
-            result.put(metadata, jaccard);
+            Score score = new Score(candidate.js, candidate.jcx, candidate.jcy);
+            result.put(metadata, score);
         }
 
         return result;
