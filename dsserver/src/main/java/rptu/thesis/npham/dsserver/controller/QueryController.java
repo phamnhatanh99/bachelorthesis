@@ -164,7 +164,7 @@ public class QueryController {
         }
 
         timer.stop();
-        evaluator.evaluate(results);
+        evaluator.evaluate(results, is_join, limit.orElse(Integer.MAX_VALUE), threshold);
         return results;
     }
 

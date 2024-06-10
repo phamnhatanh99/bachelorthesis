@@ -3,6 +3,7 @@ package rptu.thesis.npham.dsserver.evaluation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import rptu.thesis.npham.dscommon.model.metadata.Metadata;
 import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dscommon.utils.StringUtils;
 import rptu.thesis.npham.dscommon.model.query.QueryResults;
@@ -10,8 +11,7 @@ import rptu.thesis.npham.dsserver.model.ground_truth.GroundTruth;
 import rptu.thesis.npham.dscommon.model.query.SingleResult;
 import rptu.thesis.npham.dsserver.repository.GroundTruthRepo;
 import rptu.thesis.npham.dscommon.utils.CSVReader;
-import tech.tablesaw.api.Row;
-import tech.tablesaw.api.Table;
+import tech.tablesaw.api.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,12 +28,41 @@ public class Evaluator {
         this.ground_truth_repository = ground_truth_repository;
     }
 
-    public void evaluate(QueryResults results) {
+    public void evaluate(QueryResults results, boolean is_join, int limit, double threshold) {
         System.out.println("Returned " + results.results().size() + " results");
         double[] eval = precisionAndRecall(results);
         System.out.println("Precision: " + eval[0]);
         System.out.println("Recall: " + eval[1]);
         System.out.println("F1: " + f1Score(eval[0], eval[1]));
+
+        // Export to CSV
+        Metadata query = results.results().get(0).query();
+        String table_name = query.getTableName();
+        int result_size = results.results().size();
+        double precision_at_result_size = eval[0];
+        double recall_at_result_size = eval[1];
+        double f1_at_result_size = f1Score(eval[0], eval[1]);
+        Table table = Table.create(table_name);
+        StringColumn table_name_column = StringColumn.create("Table Name");
+        table_name_column.append(table_name);
+        StringColumn query_mode_column = StringColumn.create("Query Mode");
+        query_mode_column.append(is_join ? "Join" : "Union");
+        IntColumn limit_column = IntColumn.create("Limit");
+        limit_column.append(limit);
+        DoubleColumn threshold_column = DoubleColumn.create("Threshold");
+        threshold_column.append(threshold);
+        IntColumn result_size_column = IntColumn.create("Result Size");
+        result_size_column.append(result_size);
+        DoubleColumn precision_column = DoubleColumn.create("Precision");
+        precision_column.append(precision_at_result_size);
+        DoubleColumn recall_column = DoubleColumn.create("Recall");
+        recall_column.append(recall_at_result_size);
+        DoubleColumn f1_column = DoubleColumn.create("F1");
+        f1_column.append(f1_at_result_size);
+        table.addColumns(table_name_column, query_mode_column, limit_column, threshold_column, result_size_column, precision_column, recall_column, f1_column);
+        try {
+            table.write().csv("C:\\Users\\alexa\\Desktop\\Evaluation\\results\\" + table_name + ".csv");
+        } catch (Exception ignored) {}
     }
 
     public void clearGroundTruth() {
