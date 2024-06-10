@@ -28,7 +28,7 @@
     </div>
 
     <div class="container">
-        <table class="table">
+        <table class="table table-striped">
             <thead>
                 <tr>
                     <th scope="col">#</th>
@@ -45,7 +45,7 @@
                     <td th:text="${result.query().getColumnName()}"></td>
                     <td th:text="${result.candidate().getTableName()}"></td>
                     <td th:text="${result.candidate().getColumnName()}"></td>
-                    <td th:text="${result.score()}"></td>
+                    <td th:text="${#numbers.formatDecimal(result.score(), 1, 2)}"></td>
                     <td th:text="${result.candidate().getAddresses()}"></td>
                 </tr>
             </tbody>

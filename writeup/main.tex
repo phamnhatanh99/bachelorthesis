@@ -15,11 +15,22 @@
 \usepackage{cite}
 \usepackage{listings}
 \usepackage{algorithm}
+\usepackage{algorithmic}
 \usepackage{pdflscape}
 \usepackage[hidelinks]{hyperref}
 \usetikzlibrary{arrows,shapes,fit,positioning}
 \usetikzlibrary{decorations.pathmorphing}
 \usetikzlibrary{decorations.markings}
+\graphicspath{{figures/}}
+
+\lstset{basicstyle=\footnotesize\ttfamily,breaklines=true}
+\lstset{framextopmargin=50pt,frame=bottomline}
+\lstset{
+    captionpos=b,
+    numbers=left,
+    stepnumber=1,
+    tabsize=1,
+}
 
 \titleformat{\chapter}[display]
 {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
@@ -51,18 +62,19 @@
   \textsc{\Large Bachelor's Thesis}\\[0.5cm]
 {
   \linespread{1.0}\selectfont
-{\LARGE   \textsc{Cool Title}\\[2cm]}
+{\LARGE   \textsc{Design and Implementation of a Distributed Dataset Search Infrastructure}\\[2cm]}
 }
 
   { \Large
   Author:\\
-	Name\\[2cm]
+	Nhat Anh Pham\\[2cm]
   {\small submitted on: \\
   \today}
   }\\[1cm]
 
   Supervisor\\
-.....\\[2cm]
+Prof. Dr.-Ing. Sebastian Michel\\[2cm]
+
   Reviewers\\
 .....\\
   Prof. Dr.-Ing. Sebastian Michel\\
@@ -76,14 +88,14 @@
 
 
 \begin{abstract}
-Lorem ipsum
+In a distributed environment, where servers communicate via wireless networks and each server hosts a collection of datasets, finding relevant information across servers can be challenging. If a user from one server wants to identify datasets from other servers that can be joined or unioned with their own, traditional search systems would fall short because they don't consider the attributes of the datasets. Moreover, it is infeasible to transmit entire datasets across the network to find potential matches due to their large size. In this thesis, we introduce a lookup infrastructure for relational datasets that allow users to query with a dataset and receive results from other servers that are joinable/unionable with the query. Our system utilizes different measures to create compact summaries the datasets, which is significantly smaller in size than the original data. The summaries are then used to compare datasets for similarities. Through empirical evaluation, we show that the system is efficient in finding related datasets and can provide comparable response time to state-of-the-art dataset search systems, while minimizing the network traffic.
 \end{abstract}
 
 \cleardoublepage
 
 \selectlanguage{ngerman}
 \begin{abstract}
-Lorem ipsum
+In einer verteilten Umgebung, in der Server über drahtlose Netzwerke kommunizieren und jeder Server eine Sammlung von Datensätzen hostet, kann das Finden relevanter Informationen über Server hinweg eine Herausforderung darstellen. Wenn ein Benutzer von einem Server Datensätze von anderen Servern identifizieren möchte, die mit seinen eigenen zusammengeführt oder vereinigt werden können, stoßen herkömmliche Suchsysteme an ihre Grenzen, da sie die Attribute der Datensätze nicht berücksichtigen. Darüber hinaus ist es aufgrund der großen Datenmengen nicht praktikabel, ganze Datensätze über das Netzwerk zu übertragen, um potenzielle Matches zu finden. In dieser Arbeit stellen wir eine Lookup-Infrastruktur für relationale Datensätze vor, die es Benutzern ermöglicht, mit einem Datensatz zu suchen und Ergebnisse von anderen Servern zu erhalten, die mit der Anfrage joinbar oder unionbar sind. Unser System nutzt verschiedene Maßnahmen, um kompakte Zusammenfassungen der Datensätze zu erstellen, die deutlich kleiner sind als die Originaldaten. Diese Zusammenfassungen werden dann verwendet, um Datensätze auf Ähnlichkeiten zu vergleichen. Durch empirische Evaluierung zeigen wir, dass das System effizient verwandte Datensätze findet und eine vergleichbare Reaktionszeit zu modernen Datensatz-Suchsystemen bietet, während der Netzwerkverkehr minimiert wird.
 \end{abstract}
 \selectlanguage{english}
 
@@ -108,10 +120,14 @@ Lorem ipsum
 %%%
 
 \input{introduction}
-% \input{background}
-% \input{relatedwork}
-% \input{conclusion}
-  
+\input{background}
+\input{relatedwork}
+\input{overview}
+\input{implementation}
+\input{experimentalevaluation}
+\input{conclusion}
+
+
 
 \bibliographystyle{abbrv}
 \bibliography{main}

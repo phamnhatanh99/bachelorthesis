@@ -1,0 +1,58 @@
+% !TEX root =  main.tex
+
+
+
+\chapter{Related Work}
+\label{chap:relatedwork}
+\pagestyle{plain}
+
+\section{Valentine}
+
+In Valentine \cite{valentine}, Koutras et al. presented an experiment suite designed to evaluate various schema matching methods for dataset discovery, as these tasks rely heavily on schema matching to find joinable and unionable datasets. The schema matching methods they evaluated were group into six categories:
+
+\begin{itemize}
+    \item \textbf{Attribute overlap matcher}: Two columns are related if their attribute names have syntactic overlap above a predefined threshold.
+    \item \textbf{Value overlap matcher}: Two columns are related when their value sets/instances have high degree of overlap.
+    \item \textbf{Semantic overlap matcher}: Two columns are related when they have significant overlap in their labels or domain, according to some source of external knowledge.
+    \item \textbf{Data type matcher}: Matches columns that have similar data types.
+    \item \textbf{Distribution matcher}: Matches columns based on how similar the distributions of the values are.
+    \item \textbf{Embeddings matcher}: Two columns are related if they are highly similar in the embeddings of the values, which are derived from an existing pre-trained model on natural language corpora.
+\end{itemize}
+
+The methods are then ranked across four relatedness scenario:
+
+\begin{itemize}
+    \item \textbf{Joinable relations}: There exists at least one pair of attributes coming from each relation on which a join can be executed.
+    \item \textbf{Semantically-joinable relations}: There exists at least one pair of attributes coming from each relation that is semantically (must not syntactically) related and on which a semantic join can be executed. Such joins are called "fuzzy".
+    \item \textbf{Unionable relations}: Two relations have the same arity and there exists a 1-1 mapping, denoting semantic equivalence between their attribute sets.
+    \item \textbf{View-unionable relations}: There exists a view of each relation such that the two views are unionable.
+\end{itemize}
+
+For each scenario, a match is defined as a pair of attributes from two different relations. The matches are ranked in descending order according to their similarity scores. The notions introduced in Valentine, along with the datasets they used, serve as a baseline for how we implement and evaluate our systems.
+
+\section{D3L}
+
+In the paper "Dataset Discovery in Data Lakes" by Bogatu et al., the authors introduced  \(D^3L\), a dataset discovery framework that utilizes LSH indexes to to efficiently determine the relatedness (joinability and unionability) between attributes of datasets in data lake. The similarity measures that are inserted into the indexes are:
+
+\begin{itemize}
+    \item Attribute name: Calculate similarity based on the n-gram sets of the attribute name.
+    \item Attribute values overlap: Calculate similarity based on how much the attributes' values overlap.
+    \item Word-embedding: Calculate similarity based on semantic relatedness of the attribute' values by representing words as multi-dimensional vectors.
+    \item Format representation: Calculate similarity based on the regular representation patterns of the attributes' values
+    \item Domain distribution: For numerical attributes, calculate similarity based on how close the values are in their distribution.
+\end{itemize}
+
+The values of each measurements are combined into a single relatedness by calculating their weighted sum, where the weights are obtained using machine learning. Our work is inspired by the use of LSH indexes for similarity calculation and the weighted sum used to calculate the final score. Similar to \(D^3L\), we will also be using attribute name, attribute values overlap and the format representation as our measure of similarity. We choose not to use word-embedding similarity due to low precision and recall results evaluated in the paper as well as in \cite{valentine}. The distribution similarity is also not used due to it not being indexable into LSH index and require the reading of all attribute instances, which is not suitable when we are working in a distributed environment. 
+
+\section{Lazo}\label{lazo}
+
+In \cite{lazo} by Fernandez et al., the authors proposed Lazo, a method that efficiently estimate both Jaccard similarity and set containment of sets by redefining Jaccard similarity to include set cardinality, which allows for independent estimation of intersection and union of sets. At the beginning of the paper, they also mentioned some problems with traditional LSH index that makes it difficult to be directly applied to the data discovery problem:
+
+\begin{itemize}
+    \item LSH cannot estimate set containment since that requires estimating the size of the intersection, which is difficult to do with LSH. On the other hand, LSH methods that do support set containment do not support incremental indexing, which means items can no longer be hashed to the index after being queried. This makes those methods unable to work in the context of dataset discovery/schema matching, where datasets are always changing or there are new data arriving.
+    \item The indexes do not return a similarity score. As mentioned in \ref{lsh}, the LSH index only return candidates that are hashed into the same buckets. In order to obtain a score, we would either have to manually perform the calculation, or use multiple indexes with different similarity threshold and query them all, both of which are costly and inefficient.
+\end{itemize}
+
+As a result, they presented Lazo index, a modified LSH index that allows query using arbitrary input thresholds and returns a set of candidates along with their corresponding Jaccard similarity and set containment. Evaluation of their approach shows that the Lazo index significantly enhances indexing speed and provides 2-10x faster query speed compared to traditional LSH indexes. Additionally, their method outperforms other LSH methods that support set containment estimation, providing higher estimation quality. Testing on large datasets also showed that the overhead of applying the Lazo method is negligible in practice, making it suitable for data discovery scenarios. In fact, Lazo has already been used in some recent novel dataset search systems \cite{aurum, auctus}. In our implementation, we will also be using Lazo and Lazo index to efficiently query similarities between datasets.
+
+
