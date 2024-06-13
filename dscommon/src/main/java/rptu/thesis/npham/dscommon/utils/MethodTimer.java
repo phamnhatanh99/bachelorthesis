@@ -3,8 +3,6 @@ package rptu.thesis.npham.dscommon.utils;
 public class MethodTimer {
 
     private long start;
-    private long end;
-    private long elapsed;
     private final String method_name;
 
     public MethodTimer() {
@@ -19,8 +17,6 @@ public class MethodTimer {
 
     private void reset() {
         start = 0;
-        end = 0;
-        elapsed = 0;
     }
 
     public void start() {
@@ -28,13 +24,12 @@ public class MethodTimer {
         start = System.nanoTime();
     }
 
-    public void stop() {
-        end = System.nanoTime();
-        elapsed = end - start;
-        printElapsed();
+    public double getElapsed() {
+        return (double) (System.nanoTime() - start) / 1000000;
     }
 
     public void printElapsed() {
-        System.out.println("Method " + method_name + " finished in: " + elapsed / 1000000 + " ms");
+        if (method_name.isEmpty()) return;
+        System.out.println("Method " + method_name + " finished in: " + getElapsed() + " ms");
     }
 }

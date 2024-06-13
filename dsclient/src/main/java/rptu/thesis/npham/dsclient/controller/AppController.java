@@ -13,7 +13,7 @@ import rptu.thesis.npham.dsclient.model.QueryForm;
 import rptu.thesis.npham.dsclient.service.Profiler;
 import rptu.thesis.npham.dscommon.model.dto.Summaries;
 import rptu.thesis.npham.dscommon.model.query.QueryResults;
-import rptu.thesis.npham.dscommon.utils.CSVReader;
+import rptu.thesis.npham.dscommon.utils.CSV;
 import rptu.thesis.npham.dscommon.utils.MethodTimer;
 import tech.tablesaw.api.Table;
 
@@ -67,8 +67,11 @@ public class AppController {
         }
         try {
             Path path = Path.of(form.getPath());
-            Table table = CSVReader.readTable(path, true);
+            Table table = CSV.readTable(path, true);
+            MethodTimer timer = new MethodTimer("profile " + table.name());
+            timer.start();
             List<Summaries> summaries = profiler.profile(table);
+            timer.printElapsed();
             client.post()
                     .uri("/save")
                     .bodyValue(summaries)
@@ -112,13 +115,13 @@ public class AppController {
             Stream<Path> paths = Files.list(Paths.get(folder_path));
             List<Path> files = paths.toList();
             List<String> skipped = new ArrayList<>();
-            MethodTimer timer = new MethodTimer("Upload folder");
+            MethodTimer timer = new MethodTimer("profile " + folder_path);
             timer.start();
             for (Path file: files) {
                 System.out.println("Reading " + file.toString());
                 Table table;
                 try {
-                    table = CSVReader.readTable(file, true);
+                    table = CSV.readTable(file, true);
                 } catch (ArrayIndexOutOfBoundsException | TextParsingException e2) {
                     skipped.add(file.getFileName().toString());
                     continue;
@@ -126,7 +129,7 @@ public class AppController {
                 List<Summaries> summaries = profiler.profile(table);
                 all_summaries.addAll(summaries);
             }
-            timer.stop();
+            timer.printElapsed();
             if (!skipped.isEmpty())
                 model.addAttribute("warning", "Skipped: " + String.join(", ", skipped));
             paths.close();
@@ -172,7 +175,7 @@ public class AppController {
         Path path = Path.of(form.getPath());
         Table table;
         try {
-            table = CSVReader.readTable(path, true);
+            table = CSV.readTable(path, true);
         } catch (Exception e) {
             model.addAttribute("form", new QueryForm(form.getPath()));
             model.addAttribute("error", e.getMessage());

@@ -10,7 +10,7 @@ import rptu.thesis.npham.dscommon.model.sketch.Sketches;
 import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dscommon.utils.MethodTimer;
 import rptu.thesis.npham.dsserver.evaluation.Datasets;
-import rptu.thesis.npham.dsserver.evaluation.Evaluator;
+import rptu.thesis.npham.dsserver.evaluation.QueryEvaluator;
 import rptu.thesis.npham.dsserver.exceptions.MetadataNotFoundException;
 import rptu.thesis.npham.dsserver.model.similarity.Measure;
 import rptu.thesis.npham.dsserver.model.similarity.MeasureType;
@@ -31,10 +31,10 @@ public class QueryController {
     private final SketchesRepo sketches_repository;
     private final LSHIndex lsh_index;
     private final SimilarityCalculator similarity_calculator;
-    private final Evaluator evaluator;
+    private final QueryEvaluator evaluator;
 
     @Autowired
-    public QueryController(MetadataRepo metadata_repository, SketchesRepo sketches_repository, SimilarityCalculator similarity_calculator, Evaluator evaluator, LSHIndex lsh_index) {
+    public QueryController(MetadataRepo metadata_repository, SketchesRepo sketches_repository, SimilarityCalculator similarity_calculator, QueryEvaluator evaluator, LSHIndex lsh_index) {
         this.metadata_repository = metadata_repository;
         this.sketches_repository = sketches_repository;
         this.similarity_calculator = similarity_calculator;
@@ -50,9 +50,11 @@ public class QueryController {
 
     @GetMapping("loadGT")
     public String loadGT() {
-        Datasets dataset = Datasets.TUS_S;
-        evaluator.loadGroundTruth(dataset);
-        return "GT " + dataset + " loaded";
+        for (Datasets dataset : Datasets.values()) {
+            if (dataset.equals(Datasets.TUS_S)) continue;
+            evaluator.loadGroundTruth(dataset);
+        }
+        return "GT loaded";
     }
 
     /**
@@ -88,7 +90,7 @@ public class QueryController {
                                    @RequestParam("mode") String mode,
                                    @RequestParam("limit") Optional<Integer> limit,
                                    @RequestParam("threshold") Double threshold) {
-        MethodTimer timer = new MethodTimer("APIQuery");
+        MethodTimer timer = new MethodTimer("query table");
         timer.start();
 
         List<MeasureType> query_measures = new ArrayList<>();
@@ -98,15 +100,14 @@ public class QueryController {
         if (mode.equals("join")) {
             System.out.println("Join mode");
             is_join = true;
-            query_measures.add(MeasureType.TABLE_NAME_WORDNET);
-            query_measures.add(MeasureType.COLUMN_NAME_WORDNET);
-            query_measures.add(MeasureType.COLUMN_VALUE);
-            query_measures.add(MeasureType.COLUMN_FORMAT);
         } else {
             System.out.println("Union mode");
-            query_measures.add(MeasureType.COLUMN_VALUE);
-            query_measures.add(MeasureType.COLUMN_FORMAT);
         }
+
+        query_measures.add(MeasureType.TABLE_NAME_WORDNET);
+        query_measures.add(MeasureType.COLUMN_NAME_WORDNET);
+        query_measures.add(MeasureType.COLUMN_VALUE);
+        query_measures.add(MeasureType.COLUMN_FORMAT);
 
         Collections.sort(query_measures);
 
@@ -163,8 +164,8 @@ public class QueryController {
             summaries.forEach(request_object -> lsh_index.removeSketchFromIndex(request_object.sketches().getId()));
         }
 
-        timer.stop();
-        evaluator.evaluate(results, is_join, limit.orElse(Integer.MAX_VALUE), threshold);
+        double elapsed = timer.getElapsed();
+        evaluator.evaluate(results, is_join, limit.orElse(Integer.MAX_VALUE), threshold, elapsed);
         return results;
     }
 

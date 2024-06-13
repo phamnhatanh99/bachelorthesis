@@ -3,6 +3,7 @@ package rptu.thesis.npham.dsclient.service;
 import lazo.sketch.LazoSketch;
 import org.springframework.stereotype.Service;
 import rptu.thesis.npham.dscommon.model.dto.Summaries;
+import rptu.thesis.npham.dscommon.utils.CSV;
 import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dscommon.model.metadata.Metadata;
 import rptu.thesis.npham.dscommon.model.sketch.Sketch;
@@ -48,8 +49,6 @@ public class Profiler {
      * @return a list of metadata and sketches for each column
      */
     public List<Summaries> profile(Table table) {
-        MethodTimer timer1 = new MethodTimer("Profile table: " + table.name());
-        timer1.start();
         List<Summaries> result = new ArrayList<>();
         String table_name = StringUtils.normalize(table.name());
         String uuid = UUID.randomUUID().toString().replace("-","");
@@ -67,14 +66,9 @@ public class Profiler {
             int size = column.size();
 
             Metadata metadata = createMetadata(id, table_name, column_name, column_type, size, arity, address);
-            MethodTimer timer = new MethodTimer(table_name + Constants.SEPARATOR + column_name);
-            timer.start();
             Sketches sketches = createSketches(id, column, table_name, column_name);
-            timer.stop();
-
             result.add(new Summaries(metadata, sketches));
         }
-        timer1.stop();
         return result;
     }
 
@@ -95,10 +89,21 @@ public class Profiler {
      * Creates sketches for a column.
      */
     public Sketches createSketches(String id, Column<?> column, String table_name, String column_name) {
+        MethodTimer timer = new MethodTimer();
+        timer.start();
         Sketch table_name_sketch = createNameSketch(table_name, SketchType.TABLE_NAME);
+        double table_name_time = timer.getElapsed();
+        timer.start();
         Sketch column_name_sketch = createNameSketch(column_name, SketchType.COLUMN_NAME);
+        double column_name_time = timer.getElapsed();
+        timer.start();
         Sketch column_sketch = createColumnSketch(column);
+        double column_values_time = timer.getElapsed();
+        timer.start();
         Sketch format_sketch = createFormatSketch(column);
+        double column_format_time = timer.getElapsed();
+        double total_time = table_name_time + column_name_time + column_values_time + column_format_time;
+        CSV.writeSketchingResults(table_name, column_name, table_name_time, column_name_time, column_values_time, column_format_time, total_time);
 
         Sketches sketches = new Sketches();
         sketches.setId(id);
