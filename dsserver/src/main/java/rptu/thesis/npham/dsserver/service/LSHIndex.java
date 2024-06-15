@@ -6,6 +6,7 @@ import lazo.sketch.LazoSketch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rptu.thesis.npham.dscommon.model.sketch.SketchType;
+import rptu.thesis.npham.dscommon.utils.MethodTimer;
 import rptu.thesis.npham.dsserver.exceptions.MetadataNotFoundException;
 import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dscommon.model.metadata.Metadata;
@@ -43,7 +44,10 @@ public class LSHIndex {
         this.metadata_repository = metadata_repository;
         this.sketches_repository = sketches_repository;
         clearIndexes();
+        MethodTimer timer = new MethodTimer("load indexes");
+        timer.start();
         loadIndexes();
+        timer.printElapsed();
     }
 
     private void loadIndexes() {

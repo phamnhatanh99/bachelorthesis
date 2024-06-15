@@ -29,6 +29,7 @@ public class QueryEvaluator {
     }
 
     public void evaluate(QueryResults results, boolean is_join, int limit, double threshold, double elapsed) {
+        results = results.limitResults(limit);
         System.out.println("Returned " + results.results().size() + " results");
         Evaluation eval = precisionAndRecall(results);
         System.out.println("Precision: " + eval.precision());
@@ -101,7 +102,7 @@ public class QueryEvaluator {
             String candidate_table_name = res.candidate().getTableName();
             String candidate_column_name = res.candidate().getColumnName();
 
-            ground_truths_set.addAll(ground_truth_repository.findBySourceTableNameAndSourceColumnName(query_table_name, query_column_name));
+            ground_truths_set.addAll(ground_truth_repository.findBySourceTableName(query_table_name));
 
             Optional<GroundTruth> ground_truth_o = ground_truth_repository.findBySourceTableNameAndTargetTableNameAndSourceColumnNameAndTargetColumnName(query_table_name, candidate_table_name, query_column_name, candidate_column_name);
 

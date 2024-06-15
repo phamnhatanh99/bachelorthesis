@@ -5,15 +5,15 @@ import java.util.Collection;
 public enum MeasureType {
     COLUMN_VALUE, COLUMN_FORMAT, COLUMN_NAME_QGRAM, TABLE_NAME_QGRAM, COLUMN_NAME_WORDNET, TABLE_NAME_WORDNET;
 
-    private static int TABLE_NAME_JOIN_WEIGHT = 1;
-    private static int COLUMN_NAME_JOIN_WEIGHT = 2;
-    private static int COLUMN_VALUES_JOIN_WEIGHT = 2;
-    private static int COLUMN_FORMAT_JOIN_WEIGHT = 1;
+    private static int TABLE_NAME_JOIN_WEIGHT = 2;
+    private static int COLUMN_NAME_JOIN_WEIGHT = 5;
+    private static int COLUMN_VALUES_JOIN_WEIGHT = 8;
+    private static int COLUMN_FORMAT_JOIN_WEIGHT = 5;
 
     private static int TABLE_NAME_UNION_WEIGHT = 1;
-    private static int COLUMN_NAME_UNION_WEIGHT = 2;
+    private static int COLUMN_NAME_UNION_WEIGHT = 3;
     private static int COLUMN_VALUES_UNION_WEIGHT = 2;
-    private static int COLUMN_FORMAT_UNION_WEIGHT = 2;
+    private static int COLUMN_FORMAT_UNION_WEIGHT = 4;
 
     public static boolean onlyWordNet(Collection<MeasureType> measures) {
         return measures.stream().allMatch(m -> m == TABLE_NAME_WORDNET || m == COLUMN_NAME_WORDNET);

@@ -90,8 +90,13 @@ public class QueryController {
                                    @RequestParam("mode") String mode,
                                    @RequestParam("limit") Optional<Integer> limit,
                                    @RequestParam("threshold") Double threshold) {
-        MethodTimer timer = new MethodTimer("query table");
-        timer.start();
+
+//        if (threshold == 0) {
+//            queryTable(summaries, mode, limit, 0.2);
+//            queryTable(summaries, mode, limit, 0.4);
+//            queryTable(summaries, mode, limit, 0.6);
+//            queryTable(summaries, mode, limit, 0.8);
+//        }
 
         List<MeasureType> query_measures = new ArrayList<>();
         boolean is_join = false;
@@ -106,11 +111,15 @@ public class QueryController {
 
         query_measures.add(MeasureType.TABLE_NAME_WORDNET);
         query_measures.add(MeasureType.COLUMN_NAME_WORDNET);
+//        query_measures.add(MeasureType.TABLE_NAME_QGRAM);
+//        query_measures.add(MeasureType.COLUMN_NAME_QGRAM);
         query_measures.add(MeasureType.COLUMN_VALUE);
         query_measures.add(MeasureType.COLUMN_FORMAT);
 
         Collections.sort(query_measures);
 
+        MethodTimer timer = new MethodTimer("query table");
+        timer.start();
         // Boolean to check if the table being queried already exists in DB
         boolean existed = false;
         // All metadatas in the request come from the same table, so only need to retrieve the table id from the first metadata

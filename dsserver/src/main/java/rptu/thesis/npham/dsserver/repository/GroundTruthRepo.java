@@ -8,6 +8,8 @@ import java.util.Optional;
 
 public interface GroundTruthRepo extends MongoRepository<GroundTruth, String> {
 
+    List<GroundTruth> findBySourceTableName(String sourceTableName);
+
     Optional<GroundTruth> findBySourceTableNameAndTargetTableNameAndSourceColumnNameAndTargetColumnName(String sourceTableName, String targetTableName, String sourceColumnName, String targetColumnName);
 
     List<GroundTruth> findBySourceTableNameAndSourceColumnName(String sourceTableName, String sourceColumnName);

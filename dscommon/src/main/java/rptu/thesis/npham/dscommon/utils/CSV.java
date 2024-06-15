@@ -41,7 +41,6 @@ public class CSV {
     }
 
     public static void writeQueryResults(String table_name, boolean is_join, int limit, double threshold, int result_size, double elapsed, int tp, int fp, int fn, double precision, double recall, int tp_table, int fp_table, int fn_table, double precision_table, double recall_table) {
-        // table_name, query_mode, limit, threshold, result_size, time_ms, tp, fp, fn, precision, recall, tp_table, fp_table, fn_table, precision_table, recall_table
         ColumnType[] types = {
                     STRING,
                     STRING,
