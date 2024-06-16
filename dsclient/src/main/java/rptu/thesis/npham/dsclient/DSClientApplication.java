@@ -19,7 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 })
 public class DSClientApplication {
 
-    @Value("${base.url}")
+    @Value("${base.url:http://localhost:8080}")
     private String base_url;
 
     public static void main(String[] args) {

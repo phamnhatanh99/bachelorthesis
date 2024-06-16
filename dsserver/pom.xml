@@ -44,8 +44,7 @@
 			<groupId>edu.uniba.di.lacam.kdde</groupId>
 			<artifactId>ws4j</artifactId>
 			<version>1.0.2</version>
-			<scope>system</scope>
-			<systemPath>${pom.basedir}/src/main/resources/lib/ws4j-1.0.2-jar-with-dependencies.jar</systemPath>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>edu.stanford.nlp</groupId>

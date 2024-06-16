@@ -35,8 +35,7 @@
             <groupId>lazo</groupId>
             <artifactId>lazo</artifactId>
             <version>0.1.0</version>
-            <scope>system</scope>
-            <systemPath>${pom.basedir}/src/main/resources/lib/lazo-0.1.0.jar</systemPath>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.univocity</groupId>
@@ -46,13 +45,13 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+<!--    <build>-->
+<!--        <plugins>-->
+<!--            <plugin>-->
+<!--                <groupId>org.springframework.boot</groupId>-->
+<!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
+<!--            </plugin>-->
+<!--        </plugins>-->
+<!--    </build>-->
 
 </project>

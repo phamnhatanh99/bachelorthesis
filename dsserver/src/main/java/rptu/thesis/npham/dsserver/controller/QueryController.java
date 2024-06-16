@@ -18,7 +18,7 @@ import rptu.thesis.npham.dsserver.model.similarity.Measures;
 import rptu.thesis.npham.dsserver.repository.MetadataRepo;
 import rptu.thesis.npham.dsserver.repository.SketchesRepo;
 import rptu.thesis.npham.dsserver.service.LSHIndex;
-import rptu.thesis.npham.dsserver.service.SimilarityCalculator;
+import rptu.thesis.npham.dsserver.utils.SimilarityCalculator;
 import rptu.thesis.npham.dsserver.utils.Score;
 
 import java.util.*;
@@ -34,10 +34,10 @@ public class QueryController {
     private final QueryResultsEvaluator evaluator;
 
     @Autowired
-    public QueryController(MetadataRepo metadata_repository, SketchesRepo sketches_repository, SimilarityCalculator similarity_calculator, QueryResultsEvaluator evaluator, LSHIndex lsh_index) {
+    public QueryController(MetadataRepo metadata_repository, SketchesRepo sketches_repository, QueryResultsEvaluator evaluator, LSHIndex lsh_index) {
         this.metadata_repository = metadata_repository;
         this.sketches_repository = sketches_repository;
-        this.similarity_calculator = similarity_calculator;
+        this.similarity_calculator = new SimilarityCalculator();
         this.evaluator = evaluator;
         this.lsh_index = lsh_index;
     }

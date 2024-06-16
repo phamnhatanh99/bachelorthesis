@@ -71,6 +71,12 @@
             <artifactId>extjwnl-data-wn31</artifactId>
             <version>1.2</version>
         </dependency>
+        <dependency>
+            <groupId>lazo</groupId>
+            <artifactId>lazo</artifactId>
+            <version>0.1.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

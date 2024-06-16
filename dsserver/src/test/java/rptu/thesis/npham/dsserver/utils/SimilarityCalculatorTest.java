@@ -1,4 +1,4 @@
-package rptu.thesis.npham.dsserver.service;
+package rptu.thesis.npham.dsserver.utils;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

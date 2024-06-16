@@ -1,10 +1,9 @@
-package rptu.thesis.npham.dsserver.service;
+package rptu.thesis.npham.dsserver.utils;
 
 import edu.stanford.nlp.simple.Sentence;
 import edu.uniba.di.lacam.kdde.lexical_db.MITWordNet;
 import edu.uniba.di.lacam.kdde.ws4j.RelatednessCalculator;
 import edu.uniba.di.lacam.kdde.ws4j.similarity.WuPalmer;
-import org.springframework.stereotype.Service;
 import rptu.thesis.npham.dscommon.utils.StringUtils;
 import tech.tablesaw.util.LevenshteinDistance;
 
@@ -15,7 +14,6 @@ import java.util.Set;
 /**
  * Calculate semantic similarity between two strings using WordNet and Levenshtein distance
  */
-@Service
 public class SimilarityCalculator {
 
     private final RelatednessCalculator rc;
