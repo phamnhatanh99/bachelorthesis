@@ -20,6 +20,12 @@ public class CSV {
     private static final String query_results_csv = "C:\\Users\\alexa\\Desktop\\Evaluation\\results\\query_results.csv";
     private static final String sketching_results_csv = "C:\\Users\\alexa\\Desktop\\Evaluation\\results\\sketching_results.csv";
 
+    /**
+     * Read a CSV file into a Tablesaw's table object.
+     * @param path the path to the CSV file
+     * @param header whether the CSV file has a header
+     * @return the Table object
+     */
     public static Table readTable(Path path, boolean header) throws ArrayIndexOutOfBoundsException, TextParsingException {
         Table table;
         CsvReadOptions.Builder options = CsvReadOptions.builder(path.toString()).maxCharsPerColumn(32767).header(header);
@@ -34,12 +40,16 @@ public class CSV {
         return table;
     }
 
+    /**
+     * Trim the ".csv" suffix from a file name.
+     */
     public static String trimCSVSuffix(String file_name) {
         if (!file_name.toLowerCase().endsWith(".csv"))
             return file_name;
         return file_name.toLowerCase().strip().substring(0, file_name.length() - 4);
     }
 
+    // Local path, so method would not work in other environments
     public static void writeQueryResults(String table_name, boolean is_join, int limit, double threshold, int result_size, double elapsed, int tp, int fp, int fn, double precision, double recall, int tp_table, int fp_table, int fn_table, double precision_table, double recall_table) {
         ColumnType[] types = {
                     STRING,
@@ -93,6 +103,7 @@ public class CSV {
         }
     }
 
+    // Local path, so method would not work in other environments
     public static void writeSketchingResults(String table_name, String column_name, double table_name_time, double column_name_time, double column_values_time, double column_format_time, double total_time) {
         ColumnType[] types = {STRING, STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE};
         Table table;

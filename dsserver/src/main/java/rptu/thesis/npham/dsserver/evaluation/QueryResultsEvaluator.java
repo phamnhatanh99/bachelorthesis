@@ -20,11 +20,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class QueryEvaluator {
+public class QueryResultsEvaluator {
     private final GroundTruthRepo ground_truth_repository;
 
     @Autowired
-    public QueryEvaluator(GroundTruthRepo ground_truth_repository) {
+    public QueryResultsEvaluator(GroundTruthRepo ground_truth_repository) {
         this.ground_truth_repository = ground_truth_repository;
     }
 
@@ -84,9 +84,6 @@ public class QueryEvaluator {
         }
     }
 
-    /**
-     * @return [precision, recall]
-     */
     public Evaluation precisionAndRecall(QueryResults query_results) {
         int tp = 0;
         int fp = 0;

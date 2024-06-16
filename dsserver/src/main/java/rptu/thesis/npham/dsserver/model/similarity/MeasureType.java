@@ -15,14 +15,23 @@ public enum MeasureType {
     private static int COLUMN_VALUES_UNION_WEIGHT = 2;
     private static int COLUMN_FORMAT_UNION_WEIGHT = 4;
 
+    /**
+     * Check if the given measures are all WordNet measures
+     */
     public static boolean onlyWordNet(Collection<MeasureType> measures) {
         return measures.stream().allMatch(m -> m == TABLE_NAME_WORDNET || m == COLUMN_NAME_WORDNET);
     }
 
+    /**
+     * Check if the given measures are all LSH measures
+     */
     public static boolean onlyLSH(Collection<MeasureType> measures) {
         return measures.stream().allMatch(m -> m == TABLE_NAME_QGRAM || m == COLUMN_NAME_QGRAM || m == COLUMN_VALUE || m == COLUMN_FORMAT);
     }
 
+    /**
+     * Check if the given measure is a LSH measure
+     */
     public static boolean isLSH(MeasureType measure) {
         return measure == TABLE_NAME_QGRAM || measure == COLUMN_NAME_QGRAM || measure == COLUMN_VALUE || measure == COLUMN_FORMAT;
     }

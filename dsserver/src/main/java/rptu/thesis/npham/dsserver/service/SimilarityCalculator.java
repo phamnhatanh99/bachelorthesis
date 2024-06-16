@@ -29,6 +29,10 @@ public class SimilarityCalculator {
         return 1 - ((double) levenshtein / Math.max(s1.length(), s2.length()));
     }
 
+    /**
+     * Calculate similarity between two sentences using WuPalmer WordNet similarity.
+     * Score is calculated as the average of the maximum similarity between each word in the two sentences.
+     */
     public double sentenceSimilarity(String sentence1, String sentence2) {
         Sentence s1 = new Sentence(StringUtils.tokenize(sentence1));
         Sentence s2 = new Sentence(StringUtils.tokenize(sentence2));
@@ -47,6 +51,10 @@ public class SimilarityCalculator {
         return result / (lemma1.size() + lemma2.size());
     }
 
+    /**
+     * Calculate the maximum similarity between a word and a set of words.
+     * If the similarity between two words is not found in WordNet, Levenshtein distance is used.
+     */
     private double wordSentenceMaxSimilarity(String lemma, Iterable<String> lemmas) {
         double result = 0;
         for (String l : lemmas) {

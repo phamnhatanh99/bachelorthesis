@@ -13,10 +13,20 @@ public class LazoSketchGenerator {
         return updateSketch(iterable, createEmptySketch());
     }
 
+    /**
+     * Creates a new empty MinHash sketch.
+     */
     public LazoSketch createEmptySketch() {
         return new LazoSketch(N_PERMUTATIONS, SketchType.MINHASH_OPTIMAL);
     }
 
+    /**
+     * Updates a MinHash sketch with the values from an iterable, if the iterable is empty,
+     * the sketch is updated with an empty string.
+     * @param iterable The iterable to update the sketch with.
+     * @param sketch The sketch to update.
+     * @return The updated sketch.
+     */
     public LazoSketch updateSketch(Iterable<?> iterable, LazoSketch sketch) {
         // If the iterable is empty
         if (!iterable.iterator().hasNext()) {

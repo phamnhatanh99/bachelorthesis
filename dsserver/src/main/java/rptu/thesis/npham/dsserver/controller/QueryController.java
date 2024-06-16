@@ -10,7 +10,7 @@ import rptu.thesis.npham.dscommon.model.sketch.Sketches;
 import rptu.thesis.npham.dscommon.utils.Constants;
 import rptu.thesis.npham.dscommon.utils.MethodTimer;
 import rptu.thesis.npham.dsserver.evaluation.Datasets;
-import rptu.thesis.npham.dsserver.evaluation.QueryEvaluator;
+import rptu.thesis.npham.dsserver.evaluation.QueryResultsEvaluator;
 import rptu.thesis.npham.dsserver.exceptions.MetadataNotFoundException;
 import rptu.thesis.npham.dsserver.model.similarity.Measure;
 import rptu.thesis.npham.dsserver.model.similarity.MeasureType;
@@ -31,10 +31,10 @@ public class QueryController {
     private final SketchesRepo sketches_repository;
     private final LSHIndex lsh_index;
     private final SimilarityCalculator similarity_calculator;
-    private final QueryEvaluator evaluator;
+    private final QueryResultsEvaluator evaluator;
 
     @Autowired
-    public QueryController(MetadataRepo metadata_repository, SketchesRepo sketches_repository, SimilarityCalculator similarity_calculator, QueryEvaluator evaluator, LSHIndex lsh_index) {
+    public QueryController(MetadataRepo metadata_repository, SketchesRepo sketches_repository, SimilarityCalculator similarity_calculator, QueryResultsEvaluator evaluator, LSHIndex lsh_index) {
         this.metadata_repository = metadata_repository;
         this.sketches_repository = sketches_repository;
         this.similarity_calculator = similarity_calculator;
@@ -126,7 +126,7 @@ public class QueryController {
         Metadata first_col = summaries.get(0).metadata();
         String table_id = first_col.getId().split(Constants.SEPARATOR, 2)[0];
 
-        // Attempt to save the metadatas into DB for querying
+        // Attempt to save the summaries into DB for querying
         for (Summaries request_object : summaries) {
             try {
                 metadata_repository.save(request_object.metadata());
@@ -135,7 +135,6 @@ public class QueryController {
                 break;
             }
             sketches_repository.save(request_object.sketches());
-            lsh_index.updateIndex(request_object.sketches());
         }
 
         List<Metadata> columns;
@@ -170,7 +169,6 @@ public class QueryController {
         if (!existed) {
             metadata_repository.deleteByIdStartsWith(table_id);
             sketches_repository.deleteByIdStartsWith(table_id);
-            summaries.forEach(request_object -> lsh_index.removeSketchFromIndex(request_object.sketches().getId()));
         }
 
         double elapsed = timer.getElapsed();

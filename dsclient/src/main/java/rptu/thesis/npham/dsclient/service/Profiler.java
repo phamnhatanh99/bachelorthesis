@@ -112,12 +112,18 @@ public class Profiler {
         return sketches;
     }
 
+    /**
+     * Creates LazoSketch from the q-grams of a name.
+     */
     public Sketch createNameSketch(String name, SketchType type) {
         Set<String> q_gram_sets = qGram(name);
         LazoSketch lazo_name_sketch = sketch_generator.createSketch(q_gram_sets);
         return new Sketch(type, lazo_name_sketch.getCardinality(), lazo_name_sketch.getHashValues());
     }
 
+    /**
+     * Creates LazoSketch from the values of a column.
+     */
     public Sketch createColumnSketch(Column<?> column) {
         LazoSketch lazo_column_sketch = sketch_generator.createEmptySketch();
         if (Constants.typeInList(column.type().name()).equals(Constants.STRINGY_TYPES)) {
@@ -132,12 +138,18 @@ public class Profiler {
         return new Sketch(SketchType.COLUMN_VALUE, lazo_column_sketch.getCardinality(), lazo_column_sketch.getHashValues());
     }
 
+    /**
+     * Creates LazoSketch from the format patterns of a column.
+     */
     public Sketch createFormatSketch(Column<?> column) {
         Set<String> format_patterns = generateFormatPatterns(column.asStringColumn().asSet());
         LazoSketch lazo_format_sketch = sketch_generator.createSketch(format_patterns);
         return new Sketch(SketchType.FORMAT, lazo_format_sketch.getCardinality(), lazo_format_sketch.getHashValues());
     }
 
+    /**
+     * Creates q-grams of a string.
+     */
     public Set<String> qGram(String s) {
         Set<String> res = new HashSet<>();
         for (int i = 0; i < s.length() - Q + 1; i++) {
@@ -146,6 +158,9 @@ public class Profiler {
         return res;
     }
 
+    /**
+     * Generates format patterns from a column.
+     */
     public Set<String> generateFormatPatterns(Iterable<String> column) {
         Set<String> result = new HashSet<>();
         for (String value : column) {

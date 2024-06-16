@@ -28,6 +28,10 @@ public class SaveController {
         this.lsh_index = lsh_index;
     }
 
+    /**
+     * Store the summaries received from the client to the database.
+     * If the metadata already exists, update the addresses instead of creating a new metadata.
+     */
     @PostMapping("/save")
     public void save(@RequestBody List<Summaries> request_objects) {
         for (Summaries request_object : request_objects) {
@@ -50,6 +54,9 @@ public class SaveController {
         }
     }
 
+    /**
+     * Wipe all the data in the database and the LSH index.
+     */
     @GetMapping("clear")
     public String clear() {
         metadata_repository.deleteAll();

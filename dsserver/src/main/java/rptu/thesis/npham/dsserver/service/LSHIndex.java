@@ -124,6 +124,11 @@ public class LSHIndex {
         }
     }
 
+    /**
+     * Queries the table name index for the Jaccard coefficient between two datasets.
+     * @param query the metadata of the dataset to query.
+     * @return a map of the candidates and their corresponding Jaccard coefficient.
+     */
     public Map<Metadata, Score> queryTableName(Metadata query) {
         Sketch sketch = findSketch(query, SketchType.TABLE_NAME);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
@@ -131,6 +136,11 @@ public class LSHIndex {
         return queryIndex(table_name_index, lazo_sketch, query.getId());
     }
 
+    /**
+     * Queries the column name index for the Jaccard coefficient between two datasets.
+     * @param query the metadata of the dataset to query.
+     * @return a map of the candidates and their corresponding Jaccard coefficient.
+     */
     public Map<Metadata, Score> queryColumnName(Metadata query) {
         Sketch sketch = findSketch(query, SketchType.COLUMN_NAME);
         LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
