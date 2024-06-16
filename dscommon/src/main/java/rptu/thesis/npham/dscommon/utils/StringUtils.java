@@ -3,6 +3,7 @@ package rptu.thesis.npham.dscommon.utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class StringUtils {
 
@@ -41,17 +42,32 @@ public class StringUtils {
             "so", "than", "too", "very");
     private static final List<String> STOP_WORDS = new ArrayList<>(STOP_WORDS_LIST);
 
+    /**
+     * Normalize a string by trimming, lowercasing and replacing spaces with underscores
+     * @param s input string
+     * @return normalized string
+     */
     public static String normalize(String s) {
         return s.trim().toLowerCase().replace(" ", "_");
     }
 
+    /**
+     * Tokenize a string by splitting on whitespace and underscores
+     * @param s input string
+     * @return list of tokens
+     */
     public static List<String> tokenize(String s) {
         List<String> res = Arrays.asList(s.split("\\s+|_+"));
         return new ArrayList<>(res);
     }
 
+    /**
+     * Remove stop words from a list of strings, case-insensitive
+     * @param ls input list of strings
+     * @return list of strings with stop words removed
+     */
     public static List<String> removeStopWords (List<String> ls) {
-        List<String> res = new ArrayList<>(ls);
+        List<String> res = ls.stream().map(String::toLowerCase).collect(Collectors.toCollection(ArrayList::new));
         res.removeAll(STOP_WORDS);
         return res;
     }

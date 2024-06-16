@@ -146,7 +146,7 @@ public class Profiler {
         return res;
     }
 
-    public static Set<String> generateFormatPatterns(Iterable<String> column) {
+    public Set<String> generateFormatPatterns(Iterable<String> column) {
         Set<String> result = new HashSet<>();
         for (String value : column) {
             if (value != null && !value.trim().isEmpty()) {
@@ -159,7 +159,7 @@ public class Profiler {
     /**
      * Adapted from <a href="https://doi.org/10.1109/ICDE48307.2020.00067">Dataset discovery in data lakes</a>
      */
-    private static String formatRegex(String str) {
+    private String formatRegex(String str) {
         str = str.replaceAll("\n", " ").trim();
 
         StringBuilder result = new StringBuilder();
@@ -204,7 +204,7 @@ public class Profiler {
         return getRegExString(result.toString());
     }
 
-    private static String getRegExString(String str) {
+    private String getRegExString(String str) {
         if (str == null || str.isEmpty()) return str;
 
         StringBuilder result = new StringBuilder();
