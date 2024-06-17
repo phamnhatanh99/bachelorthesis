@@ -6,6 +6,20 @@
 \label{chap:conclusion}
 \pagestyle{plain}
 
-\section{Limitations}
+\section{Conclusion}
 
-\section{Future work}
+In this thesis, we presented an infrastructure for related dataset search that works in a distributed environment. We discussed how traditional dataset search systems do not provide enough information in order to find related datasets as well as the problem of finding datasets over wireless network. This issue is tackled by summarizing the datasets in a way that the summary is small enough to be able to be sent through the internet, while still maintaining valuable information that allows for similarity comparison. The system provided users an interface to upload datasets' summaries to the server and query for joinable and unionable datasets. Various measures of similarity were aggregated on a column-to-column basis to compare datasets, namely: WordNet semantic similarity, q-gram table and column name similarity, value sets overlap similarity, value format overlap similarity. By using MinHash sketch, we were able to keep the summaries small and still able to calculate the aforementioned measures. By inserting the sketches into modern LSH indexes, accurate results were returned without having to perform costly pairwise similarity computations. An optimization algorithm is also implemented, making use of the query threshold to quickly get rid of negative result and improve query speed.
+
+Through empirical evaluation, we confirmed that our implementation managed to achieve comparable results to other schema matching and dataset search systems, while keeping the dataset summaries compact and transferable across network. Query results were also significantly improved through the use of the optimization algorithm.
+
+\section{Limitations and Future work}
+
+During our implementation process, there are the following shortcomings that arise:
+
+\begin{itemize}
+    \item The weighting system were used to emphasize similarity measures that have higher contributions to the relatedness in different query cases. However, we found out during evaluation process that the weights did not alter the results very much. We believe that the weighting would have more impact if they are properly adjusted using a logistic regression model. However, due to time constraint and the lack of datasets with available ground truth, this was not performed.
+    \item The Lazo's implementation of LSH index and MinHash sketch is efficient and yield relatively accurate results even when the sketch size is small. This comes with the downside however of having to store the indexes in-memory. This introduces a single point of failure in the system, as well as preventing the system from maximizing the utility of a distributed database, since all communication has to first go through one single server. Future work should therefore look into moving the LSH index into the database itself, removing the need for a dedicated centralized server.
+    \item Currently, the system only accepts CSV files as input for testing purpose. Clearly, datasets exist in other form other than CSV files, so allowing users to provide datasets from other sources such as XML files or importing from databases would greatly improve the usability of the system.
+\end{itemize}
+
+Finally, as mentioned in \cite{valentine} and \cite{datasetDiscoverySurvey}, schema matching algorithms are not one-size-fits-all, since they depend heavily on how the datasets look like. Our system provides a generalized approach for finding similar relational datasets, but there could be other optimized approaches if we know what kind of data we are dealing with beforehand. For example, to join datasets using geospatial data (latitude and longitude), we can cluster neighboring regions together and only search within those clusters. Also, in our implementation, we focus mostly on using MinHash sketches to find similarity. In future work, other types of sketches (like \cite{lshBloom}) could be look into and evaluated to determine their usability and effectiveness in schema matching tasks.

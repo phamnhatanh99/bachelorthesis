@@ -22,6 +22,9 @@ public record QueryResults(List<SingleResult> results) {
         results.add(new SingleResult(query, candidate, score));
     }
 
+    /**
+     * Add all results from another QueryResults object to this object
+     */
     public void addAll(QueryResults results) {
         this.results.addAll(results.results());
     }

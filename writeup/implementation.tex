@@ -6,7 +6,7 @@
 \label{chap:implementation}
 \pagestyle{plain}
 
-In this chapter, a detailed view of the system is presented. First, the objects used to communicate between server and clients are introduced. Then, a brief introduction to MongoDB, our database of choice is given. After that, we provided the implementation of the client application and lastly the server's implementation. We make the following assumptions about the datasets we are working with: they are files in CSV format and the first row of the files contain the headers/attribute names of the datasets. The system is implemented using Java and the Spring framework.
+In this chapter, a detailed view of the system is presented. First, the objects used to communicate between server and clients are introduced. Then, a brief introduction to MongoDB, our database of choice is given. After that, we provide the implementation of the client application and lastly the server's implementation. We make the following assumptions about the datasets we are working with: they are relational tables in CSV format and the first row of the files contain the headers/attribute names of the tables. The system is implemented on Java using the Spring framework.
 
 \section{Communication Objects}
 
@@ -14,11 +14,11 @@ There are two main types of objects that are exchanged between client and server
 
 \subsection{Dataset Summaries}\label{metadata}
 
-A dataset is summarized on a column-by-column basis. The summary of a column contain two main component: the metadata and the sketches:
+A table is summarized on a column-by-column basis. The summary of a column contain two main component: the metadata and the sketches:
 
 \begin{itemize}
     \item \textbf{Metadata}: Provides basic information about a column of a table (listing \ref{lst:metadata}): the name of the table that this column belongs to, the name of this column, its datatype, the size/amount of elements the column contains, and a set of IP-Addresses of machines that carry this dataset. An additional id field that contains an UUID representing the table name, concatenated with the column name is associated with each metadata to uniquely identify the metadata and provide easy retrieval of all metadata of a dataset, which is discussed more in detail in the upcoming section.
-    \begin{lstlisting}[caption={Preview of the metadata object}, label=lst:metadata]
+    \begin{lstlisting}[caption={The metadata object}, label=lst:metadata]
 class Metadata {
     // id = uuid + SEPARATOR + column_name
     // uuid is the same for all metadata of a dataset
@@ -31,9 +31,9 @@ class Metadata {
     Set<String> addresses;
 }
     \end{lstlisting}
-    \item \textbf{Sketches}: A set of Lazo's implementation of MinHash sketches, represented by the stored hash values and the cardinality of the set that is sketched (\ref{lst:sketches}), which the authors used to improve estimation accuracy. The sketches are generated from the sets that were mentioned in section \ref{simMeasures}.
+    \item \textbf{Sketches}: A set of Lazo's implementation of MinHash sketches, represented by the stored hash values and the cardinality of the set that is sketched (listing \ref{lst:sketches}), which the authors used to improve estimation accuracy. The sketches are generated from the sets that were mentioned in section \ref{simMeasures}.
 
-\begin{lstlisting}[caption={Preview of the sketches object}, label=lst:sketches]
+\begin{lstlisting}[caption={The sketches object}, label=lst:sketches]
 class Sketches {
     // id refers to the Metadata object
     private String id;
@@ -54,19 +54,16 @@ enum SketchType {
 
 \subsection{Query Results}
 
-This object contains a list of individual entries of result, where a result maps one metadata from the query table to one matched metadata along with the similarity score of this match (listing \ref{lst:queryResults}). The list of results are sorted in descending order of similarity scores.
+This object contains a list of individual entries of result, where a result maps one metadata from the query table to one matched metadata along with the similarity score of this match (listing \ref{lst:queryResults}). Results can be added into this object by providing the Metadata objects of query, matched candidate and the corresponding score. Additionally, the class provides different methods to sort the results in descending order of score, limit the results to only the top-k highest scoring ones, and filter out results whose scores are lower than the given threshold. The methods match with the options provided to the user in the query interface, so these method need to be correspondingly applied before sending the query results back to the user. 
 
 \begin{lstlisting}[caption={QueryResults class and the various methods to sort, filter, and limit matches}, label=lst:queryResults]
-public record QueryResults(List<SingleResult> results) {
-    // Return a new QueryResults object with the results sorted by score in descending order
-    public QueryResults sortResults();
-    //Return a new QueryResults object with the top n highest scoring results. The results are sorted by score in descending order
-    public QueryResults limitResults(int limit);
-    // Return a new QueryResults object with only the results that have a score greater than or equal to the threshold
-    public QueryResults withThreshold(double threshold);
+record QueryResults(List<SingleResult> results) {
+    QueryResults sortResults();
+    QueryResults limitResults(int limit);
+    QueryResults withThreshold(double threshold);
 }
 
-public record SingleResult(Metadata query, Metadata candidate, double score) {}
+record SingleResult(Metadata query, Metadata candidate, double score) {}
 \end{lstlisting}
 
 \section{Database}
@@ -77,8 +74,8 @@ In order to store the metadata and sketches, MongoDB is used. This is the databa
     \item Replication: MongoDB is a distributed database, where the data are stored on multiple database servers. This redundancy increases data availability and provides fault tolerance in case a single database server fails.
     \item Flexible schema: MongoDB is a NoSQL database, therefore it does not store data in relational manner, but rather stored in JSON-style documents, which do not have constraint on the amount of attributes and their types. This allows us to make changes to the schema in case e.g. a new sketch type for certain types of attributes is developed without having to perform alterations to existing data to fit the new schema.
     \item Object mapping: The format MongoDB stores data in allow them to be easily converted to a Java object without the use of Object-Relational-Mappers (like OpenJPA \footnote{https://openjpa.apache.org/})
-    \item Fast read: MongoDB uses index to speed up data retrieval on indexed fields, especially on id field. Since the system mostly query on id field, and the sketches are need to be read into main memory on server startup (due to Lazo's LSH index), the database provides high performance to the system.
-    \item Unique index: Additionally, MongoDB also provides unique indexed, which ensure that the indexed fields do not store duplicate values. We use this feature to detect duplicate metadata. This happens when two machines contain the same dataset and both are trying to upload the summaries to the server. When duplicates are detected, they are grouped into the same metadata, with the set of addresses merged together.
+    \item Fast read: MongoDB uses index to speed up data retrieval on indexed fields, especially on id field. Since the system mostly query on id field, and the sketches are need to be read into main memory on server startup (due to Lazo's LSH index), the database provides the needed high performance to the system.
+    \item Unique index: Additionally, MongoDB also provides unique indexes, which ensure that the indexed fields do not store duplicate values. We use this feature to detect duplicate metadata. This happens when two machines contain the same dataset and both are trying to upload the summaries to the server. When duplicates are detected, they are grouped into the same metadata, with the set of addresses merged together.
 \end{itemize}
 
 In our database, there are two collections, one for the metadata and one for the for the sketches. The collections consist of documents, which are simply JSON strings in binary format mapped from the respective Java objects. An unique index is also set up on the fields table\_name, column\_name, type, size and arity of the metadata collection for reasons we mention in section \ref{profiler} and \ref{saveController}.
@@ -105,31 +102,15 @@ class AppController {
 
     @PostMapping("/upload_file")
     public String saveFile(Form form, ...) {
-        Path path = Path.of(form.getPath());
-        Table table = CSVReader.readTable(path, true);
-        List<Summaries> summaries = profiler.profile(table);
+        // Read file and summarize
         // Send summaries via POST request to /save endpoint
-        client.post()
-                .uri("/save")
-                .bodyValue(summaries)
-                .retrieve().bodyToMono(Void.class).block();
-        ...
     }
 
     @PostMapping("/query")
     public String sendQuery(QueryForm form, ...) {
-        ...
-        // Send summaries via POST request to /query endpoint,
-        // QueryResults are used to display the results to GUI
-        QueryResults results = client.post()
-                .uri(builder -> builder
-                        .path("/query")
-                        .queryParam("mode", form.getMode())
-                        .queryParam("limit", form.getLimit())
-                        .queryParam("threshold", form.getThreshold())
-                        .build())
-                .bodyValue(summaries)
-                .retrieve().bodyToMono(QueryResults.class).block();
+        // Read file and summarize
+        // Send summaries via POST request to /query endpoint
+        // Display QueryResults
     }
     
 }
@@ -142,41 +123,43 @@ The profiler generates the metadata of a table by iterating over its columns to 
 As for sketches, the profiler uses three main methods: createNameSketch(), createColumnSketch() and createFormatSketch().
 
 \begin{itemize}
-    \item createNameSketch() (listing \ref{lst:nameSketch}): used to create MinHash sketch for the table name and column name from their q-gram-sets. The q-value of 4 is used, similar to \cite{d3l}. If a string has a length smaller than 4, the input of the sketch generator would be an empty set.
-    \begin{lstlisting}[caption=qGram() and createNameSketch() methods, label=lst:nameSketch]
-public Set<String> qGram(String s) {
-    Set<String> res = new HashSet<>();
-    for (int i = 0; i < s.length() - Q + 1; i++) {
-        res.add(s.substring(i, i + Q));
-    }
-    return res;
-}
+    \item createNameSketch(): used to create MinHash sketch for the table name and column name from their q-gram-sets (algorithm \ref{alg:qGram}). The q-value of 4 is used, similar to \cite{d3l}. If a string has a length smaller than 4, the input of the sketch generator would be an empty set.
 
-public Sketch createNameSketch(String name, SketchType type) {
-    Set<String> q_gram_sets = qGram(name);
-    LazoSketch lazo_name_sketch = sketch_generator.createSketch(q_gram_sets);
-    return new Sketch(type, lazo_name_sketch.getCardinality(), lazo_name_sketch.getHashValues());
-}
-    \end{lstlisting}
+\begin{algorithm}
+    \caption{Generating the q-gram set of a string with q = 4}
+    \label{alg:qGram}
+    \begin{algorithmic}[1]
+\STATE \textbf{Input}: String $s$
+\STATE \textbf{Output}: Set of q-grams $Q$
+\STATE $q \gets 4$
+\STATE $Q \gets$ Set()
+\FOR{i = 0; i < s.length - q + 1; i++}
+\STATE $Q.add(substring(i, i + q))$
+\ENDFOR
+\RETURN $Q$
+    \end{algorithmic}
+\end{algorithm}
     
-    \item createColumnSketch() (listing \ref{lst:columnSketch}): the method creates MinHash sketches from unique values set of a column, if a column is of type String, the values are not sketched as is, but rather transformed into a set of q-grams using the qGram() method above, which help finding fuzzy matches.
+    \item createColumnSketch() (algorithm \ref{alg:columnSketch}): the method creates MinHash sketches by first converting a column to its set representation, retrieving only unique values. If a column is of type String, the values are not sketched as is, but rather transformed into a set of q-grams using the qGram() method above, which help to find fuzzy matches.
 
-    \begin{lstlisting}[caption=createColumnSketch() method, label=lst:columnSketch]
-public Sketch createColumnSketch(Column column) {
-    LazoSketch lazo_sketch = sketch_generator.createEmptySketch();
-    if (column.type() == STRING) {
-        // Iterate through the column's unique values
-        for (String s: column.asSet()) {
-            Set<String> shingles = qGram(s);
-            sketch_generator.updateSketch(shingles, lazo_sketch);
-        }
-    }
-    else {
-        sketch_generator.updateSketch(column.asSet(), lazo_sketch);
-    }
-    return new Sketch(SketchType.COLUMN_VALUE, lazo_column_sketch.getCardinality(), lazo_column_sketch.getHashValues());
-}
-    \end{lstlisting}
+\begin{algorithm}
+    \caption{Generating the sketch of a column's values}
+    \label{alg:columnSketch}
+    \begin{algorithmic}[1]
+\STATE \textbf{Input}: Column $C$
+\STATE \textbf{Output}: Sketch $S$
+\STATE $S \gets$ Sketch()
+\STATE $C_set \gets C.toSet()$
+\IF{$C$ is of type string}
+\FOR{each value in $C_set$}
+\STATE $S.update(qGram(value))$
+\ENDFOR
+\ELSE
+\STATE $S.update(qGram(C_set))$
+\ENDIF
+\RETURN $S$
+    \end{algorithmic}
+\end{algorithm}
     
     \item createFormatSketch(): the method creates a sketch on the set of regexs that describe all possible values of the column. The regex grammar uses the set of patterns in listing \ref{lst:patterns} as the alphabet, which is the extended patterns set from \cite{d3l} as we found their patterns are not listed in the correct order and are not discriminating enough. For each value represented as a string, algorithm \ref{alg:formatRegex} continually tokenizes the string from the beginning until the end, finding the longest starting substring to convert to a character in the alphabet. If a value matches more than one pattern, the first match from the listing is chosen. And if a character in the alphabet appears consecutively, all occurrences except the first are replaced by "+". For example, a column with the set of values \(\{Alice\;C., bob, cat, user1??\}\) would yield the regex set \(\{cwup, l, ao+\}\). 
 
@@ -219,36 +202,38 @@ o = .
     
 \end{itemize}
 
-The sketch generator is a supporting class that handles the process of reading the input set and transforming it to Lazo's implementation of MinHash sketches (LazoSketch object). As the LazoSketch only hashes input values of type string, we provide a method to convert the values to be sketched to their string representation (listing \ref{lst:sketchGenerator}). There are also two special cases where the input set is empty or is of type boolean. In case the set is empty, we return a LazoSketch containing the hash values of the empty string. If the set is a boolean set, then the string representation of the boolean values are 0 and 1.
+The sketch generator is a supporting class that handles the process of reading the input set and transforming it to Lazo's implementation of MinHash sketches (LazoSketch object). As the LazoSketch only hashes input values of type string, we provide a method to convert the values to be sketched to their string representation (listing \ref{alg:lazoSketch}). There are also two special cases where the input set is empty or is of type boolean. In case the set is empty, we return a LazoSketch containing the hash values of the empty string. If the set is a boolean set, then the string representation of the boolean values are 0 and 1.
 
-\begin{lstlisting}[caption=The SketchGenerator class, label=lst:sketchGenerator]
-public class LazoSketchGenerator {
-    public LazoSketch createSketch(Iterable<?> iterable) {
-        return updateSketch(iterable, createEmptySketch());
-    }
-
-    public LazoSketch createEmptySketch() {
-        return new LazoSketch();
-    }
-
-    public LazoSketch updateSketch(Iterable<?> iterable, LazoSketch sketch) {
-        if (!iterable.iterator().hasNext()) {
-            sketch.update("");
-            return sketch;
-        }
-        for (Object value: iterable) {
-            if (value == null) sketch.update("");
-            else if (value instanceof Boolean b) sketch.update(b ? "1" : "0");
-            else sketch.update(value.toString().trim());
-        }
-        return sketch;
-    }
-}
-\end{lstlisting}
+\begin{algorithm}
+    \caption{Updating a LazoSketch}
+    \label{alg:lazoSketch}
+    \begin{algorithmic}[1]
+\STATE \textbf{Input}: Iterable $i$, LazoSketch $S$
+\STATE \textbf{Output}: Updated sketch $S$
+\IF{$i == null$ or $i.isEmpty$}
+\STATE $S.update("")$
+\RETURN $S$
+\ENDIF
+\FOR{$value$ in $i$}
+\IF{$value == null$}
+\STATE $S.update("")$
+\ELSIF{$value.isBoolean$}
+\IF{$value == true$}
+\STATE $S.update("1")$
+\ELSE
+\STATE $S.update("0")$
+\ENDIF
+\ELSE
+\STATE $S.update(value.toString())$
+\ENDIF
+\ENDFOR
+\RETURN $S$
+    \end{algorithmic}
+\end{algorithm}
 
 \section{Server Application}
 
-In this section, we describe the components of the server. First is the controller that provides the endpoint for the save action. Then we show how the sketches are stored in the LSH indexes and how the indexes are queried to retrieve similarity scores. Next, we go into details on the calculation of the WordNet similarity score. After that, we explain the way to combine all similarity scores from different measures to one single score. Finally, an optimization technique is also presented to avoid unnecessary calculations, ensuring that the server performs efficiently when there are many datasets present.
+In this section, we describe the components of the server. First is the controller that provides the endpoint for the save action. Then we show how the sketches are stored in the LSH indexes and how the indexes are queried to retrieve similarity scores. Next, we go into details on the calculation of the WordNet similarity score. After that, we explain the way to combine all similarity scores from different measures to one single score. Finally, the query controller is presented with an optimization technique to avoid unnecessary calculations, ensuring that the server performs efficiently when there are many datasets present.
 
 \subsection{Save Controller}\label{saveController}
 
@@ -256,7 +241,7 @@ In this REST controller class, a save endpoint is available to receive dataset s
 
 \begin{lstlisting}[caption=Example of the the repository interface for collection of metadata, label=lst:metadataRepo]
 @Repository
-public interface MetadataRepo extends MongoRepository<...> {
+interface MetadataRepo extends MongoRepository<...> {
     List<Metadata> findByIdStartsWith(String regex);
     
     @Query("{ 'table_name': ?0, 'column_name': ?1, 'type': ?2, 'size': ?3, 'arity': ?4 }")
@@ -274,111 +259,62 @@ In listing \ref{lst:metadataRepo}, we extend MongoRepository with method findByI
 
 and construct a query out of them. In the case where a query is too complex to be built using only keywords, we can also provide the query manually in the @Query annotation, like in the findByUniqueIndex() method where we look for a single metadata that matches the unique index constraint by listing the fields' names as key and placeholders as values, which are replaced by the method's arguments when the query is executed.
 
-When the list of Summaries objects make it to the save endpoint on the server, for each summaries (a column of a table) the controller first attempt to insert the metadata to the database before inserting the sketches to the database and to the indexes. If a DuplicateKeyException is thrown, then we know that the metadata already exists due to the unique index constraint. The existing metadata is retrieved instead and the IP address field of the metadata taken from the request is added to the existing address set in the database, indicating that the dataset is available from multiple sources (listing \ref{lst:saveController}).
+When the list of Summaries objects make it to the save endpoint on the server, for each summaries (a column of a table), the controller first attempt to insert the metadata to the database before inserting the sketches to the database and to the indexes. If a DuplicateKeyException is thrown, then we know that the metadata already exists due to the unique index constraint. The existing metadata is retrieved instead and the IP address field of the metadata taken from the request is added to the existing address set in the database, indicating that the dataset is available from multiple sources (algorithm \ref{alg:save}).
 
-\begin{lstlisting}[caption=The save controller, label=lst:saveController]
-@RestController
-public class SaveController {
-    MetadataRepo metadata_repository;
-    SketchesRepo sketches_repository;
-    LSHIndex lsh_index;
-
-
-    @PostMapping("/save")
-    public void save(@RequestBody List<Summaries> request_objects) {
-        for (Summaries request_object : request_objects) {
-            try {
-                metadata_repository.save(request_object.metadata());
-            } catch (DuplicateKeyException e) {
-                ...
-                Set<String> addresses = request_object.metadata().getAddresses();
-                Metadata metadata = metadata_repository.findByUniqueIndex(table_name, column_name, type, size, arity).get();
-                metadata.getAddresses().addAll(addresses);
-                continue;
-            }
-            sketches_repository.save(request_object.sketches());
-            lsh_index.updateIndex(request_object.sketches());
-        }
-    }
-}
-\end{lstlisting}
+\begin{algorithm}
+    \caption{Saving the summaries into the database}
+    \label{alg:save}
+    \begin{algorithmic}[1]
+\STATE \textbf{Input}: List of Summaries objects $S$
+\FOR{$summaries$ in $S$}
+\STATE \textbf{try} 
+\STATE \; store $summaries.metadata$ in database
+\STATE \textbf{catch} DuplicateKeyException
+\STATE \; $metadata \gets findByUniqueIndex(table\_name, type, size,...)$
+\STATE \; $metadata.addresses.addAll(summaries.metadata.addresses)$
+\STATE \; \textbf{continue}
+\STATE store $summaries.sketches$ in database
+\STATE update LSH indexes with $summaries.sketches$
+\ENDFOR
+    \end{algorithmic}
+\end{algorithm}
 
 \subsection{LSH index}
 
 Once the summaries are stored in the database, they are then also immediately loaded into the LSH indexes that lie the main memory. There are currently four indexes available to correspond to the 
-four sketch types available as seen in listing \ref{lst:sketches}. The insertion method (listing \ref{lst:updateIndex}) works by first recreating the LazoSketch object from the cardinality value and the hash values from the Sketch object. Then the method checks the type field from the Sketch object to see in which index should this LazoSketch be inserted to. The Lazo index also requires an object to be inserted as a key to identify the results return upon querying. Since the sketch uniquely identifies a metadata/column of the table in each index, the id of the metadata is chosen to be the key. 
+four sketch types available as seen in listing \ref{lst:sketches}. The insertion method (listing \ref{alg:insertSketchToIndex}) works by first recreating the LazoSketch object from the cardinality value and the hash values from the Sketch object. Then the method checks the type field from the Sketch object to see in which index should this LazoSketch be inserted to. The Lazo index also requires an object to be inserted as a key to identify the results return upon querying. Since the sketch uniquely identifies a metadata/column of the table in each index, the id of the metadata is chosen to be the key.
 
-\begin{lstlisting}[caption=Inserting sketches into the indexes, label=lst:updateIndex]
-public clas LSHIndex {
-    LazoIndex table_name_index = new LazoIndex();
-    LazoIndex column_name_index = new LazoIndex();
-    LazoIndex column_value_index = new LazoIndex();
-    LazoIndex format_index = new LazoIndex();
+\begin{algorithm}
+    \caption{Inserting a sketch into LSH index}
+    \label{alg:insertSketchToIndex}
+    \begin{algorithmic}[1]
+\STATE \textbf{Input}: Sketch id $id$, Sketch $S$
+\STATE $lazoSketch \gets S.recreateSketch()$
+\STATE \textbf{switch} $S.type()$
+\STATE \: \textbf{case} $TABLE\_NAME$: $updateTableNameIndex(id, lazoSketch)$
+\STATE \: \textbf{case} $COLUMN\_NAME$: $updateColumnNameIndex(id, lazoSketch)$
+\STATE \: \textbf{case} $COLUMN\_VALUE$: $updateColumnValueIndex(id, lazoSketch)$
+\STATE \: \textbf{case} $FORMAT$: $updateFormatIndex(id, lazoSketch)$
+    \end{algorithmic}
+\end{algorithm}
 
-    public void updateIndex(Sketches sketches) {
-        for (Sketch sketch: sketches.getSketches()) {
-            addSketchToIndex(sketches.getId(), sketch);
-        }
-    }
-
-    public void addSketchToIndex(String id, Sketch sketch) {
-        LazoSketch lazo_sketch = recreateSketch(sketch.cardinality(), sketch.hash_values());
-        switch (sketch.type()) {
-            case TABLE_NAME -> table_name_index.update(id, lazo_sketch);
-            case COLUMN_NAME -> column_name_index.update(id, lazo_sketch);
-            case COLUMN_VALUE -> column_value_index.update(id, lazo_sketch);
-            case FORMAT -> format_index.update(id, lazo_sketch);
-        }
-    }
-
-    public LazoSketch recreateSketch(long cardinality, long[] hash_values) {
-        LazoSketch sketch = new LazoSketch();
-        sketch.setCardinality(cardinality);
-        sketch.setHashValues(hash_values);
-        return sketch;
-    }
-}
-\end{lstlisting}
-
-Since the indexes are stored in memory, upon starting the application, all sketches also have to be loaded from the database (listing \ref{lst:loadIndex}). While this is inefficient, we argue using evaluation statistics that the footprint of the sketches are small enough to be read all at once and the server startup is not a common operation, therefore the loading process does not compromise the usability of the system.
-
-\begin{lstlisting}[caption=Load all sketches into indexes during initialization, label=lst:loadIndex]
-
-SketchesRepo sketches_repository;
-
-public LSHIndex() {
-    loadIndexes();
-}
-
-private void loadIndexes() {
-    for (Sketches sketches: sketches_repository.findAll()){ 
-        updateIndex(sketches);
-    }
-}
-\end{lstlisting}
+Since the indexes are stored in memory, upon starting the application, all sketches also have to be loaded from the database. While this is inefficient, we argue using evaluation statistics that the footprint of the sketches are small enough to be read all at once and the server startup is not a common operation, therefore the loading process does not compromise the usability of the system.
 
 Now, in order to query the indexes, the LazoIndex class provides a method query() that takes the query LazoSketch as input, as well as the threshold of similarity above which another LazoSketch is considered a candidate. The method then returns a set of LazoCandidate, which is just a wrapper object for the key that correspond to the LazoSketch that was inserted and three scores: Jaccard coefficient, set containment of the query in candidate and the set containment in the opposite direction (listing \ref{lst:queryIndex}).
 
-\begin{lstlisting}[caption=The query() method that LazoIndex provided, label=lst:queryIndex]
-public class LazoIndex {
+\begin{lstlisting}[caption=Candidate object returned by the query() method, label=lst:queryIndex]
+class LazoIndex {
     Set<LazoCandidate> query(LazoSketch sketch, float threshold)
 }
 
-public class LazoCandidate {
-    public final Object key;
+class LazoCandidate {
+    Object key;
     // Jaccard coefficient
-    public final float js;
+    float js;
     // Set containment of query in candidate
-    public final float jcx;
+    float jcx;
     // Set containment of candidate in query
-    public final float jcy;
-
-    public LazoCandidate(Object key, float js, float jcx, float jcy) {
-        this.key = key;
-        this.js = js;
-        this.jcx = jcx;
-        this.jcy = jcy;
-    }
+    float jcy;
 }
 \end{lstlisting}
 
@@ -413,7 +349,7 @@ One problem with using WordNet is, however, the database only contains words in 
 We then proceed to extend the semantic similarity between words to the entire table and attribute name, which can be multiple words long. Firstly, the string representation of the name is tokenized into a list of individual string by splitting it around whitespaces or underscores, which are common word separator in names (listing \ref{lst:tokenize}).
 
 \begin{lstlisting}[caption=tokenize() method, label=lst:tokenize]
-public List<String> tokenize(String s) {
+List<String> tokenize(String s) {
     \\ regex denotes consecutive occurences of whitespaces or underscores
     return Arrays.asList(s.split("\\s+|_+"));
 }
@@ -457,14 +393,14 @@ Then, the tokenized words are wrapped in a sentence class from NLP's library so 
     \end{algorithmic}
 \end{algorithm}
 
-\subsection{Measure Object}
+\subsection{Measure Object}\label{measureObject}
 
 In order to differentiate the similarity scores of different similarity measurements, we wrap the score into a Measure object that contains the score, the type of measure this score represents, and the weighting of this score (listing \ref{lst:measure}), which is taken into consideration when the scores are aggregated together. 
 
 \begin{lstlisting}[caption=The measure object,label=lst:measure]
-public record Measure(MeasureType measures, double score, int weight) {}
+record Measure(MeasureType measures, double score, int weight) {}
 
-public enum MeasureType {
+enum MeasureType {
     COLUMN_VALUE, COLUMN_FORMAT, COLUMN_NAME_QGRAM, TABLE_NAME_QGRAM, COLUMN_NAME_WORDNET, TABLE_NAME_WORDNET
 }
 \end{lstlisting}
@@ -474,34 +410,22 @@ The score's weight of a measure depends on what type of measure it is and whethe
 For each pair of query - candidate column, to get all of the measures calculated between them, we wrap them again in the Measures object (listing \ref{lst:measures}):
 
 \begin{lstlisting}[caption=The Measures object, label=lst:measures]
-public class Measures {
+class Measures {
     List<Measure> measures;
 
-    public void addMeasure(Measure measure) {
-        if (measures.stream().anyMatch(m -> measure.measure() == m.measure())) {
-            throw new RuntimeException("Measure already exist in the list");
-        }
-        measures.add(measure);
+    void addMeasure(Measure measure) {
+        // Throws exception if a measure already exists in the list
     }
 
-    public double weightedAverage() {
-        double result = 0;
-        double total_weight = 0;
-        for (Measure measure: measures) {
-            double weight = measure.weight();
-            result += measure.score() * weight;
-            total_weight += weight;
-        }
-        return result / total_weight;
-    }
+    double weightedAverage() {}
 }
 \end{lstlisting}
 
-Given the list of measures, this class aggregates the scores using weighted sum:
+Given the list of measures, this class aggregates the scores using weighted average function:
 
 \[score(query, candidate) = \frac{\sum_{m \in measures} w_m \cdot sim_m(query, candidate)}{\sum_{m \in measures} w_m}\]
 
-Since all calculated scores are in the range 0 to 1, the aggregated score also ranges from 0 to 1.
+As all calculated scores are in the range 0 to 1, the aggregated score also ranges from 0 to 1.
 
 \subsection{Query Controller}
 
@@ -543,7 +467,7 @@ In main endpoint provided in this REST controller class is the query endpoint, w
     \end{algorithmic}
 \end{algorithm}
 
-On the column level, we differentiate between two main categories of similarity measures to perform the calculations: WordNet similarity (on table names and column names) and LSH-based similarity (on table names, column names, value sets overlap and format overlap) (listing \ref{lst:queryColumn}). In any combinations of measures used, the data types is always the first filter to be used as per section \ref{schemaSim}. Since the data types of the attribute is derived automatically from CSV file by Tablesaw, and without an official schema provided, the attribute type is ambiguous anyway. Therefore, we define classes of data types defined by Tablesaw that are similar to each other, so that two columns with different types but belong in the same class are still considered a match:
+On the column level, we differentiate between two main categories of similarity measures to perform the calculations: WordNet similarity (on table names and column names) and LSH-based similarity (on table names, column names, value sets overlap and format overlap) (listing \ref{lst:queryColumn}). In any combinations of measures used, the data types is always the first filter to be used as per section \ref{schemaSim}. Since the data types of the attribute is derived automatically from CSV file by Tablesaw, and without an official schema provided, the type of an attribute is ambiguous anyway. Therefore, we define classes of data types defined by Tablesaw that are similar to each other, so that two columns with different types but belong in the same class are still considered a match:
 
 \begin{itemize}
     \item \textbf{"Stringy" types}: Text, String
@@ -558,7 +482,7 @@ All of the given data types correspond to a class in Java, with the Text data ty
 // metadata: query column
 // is_join: true if query mode is join, else union mode
 // query_measures: list of similarity measures
-public QueryResults queryColumn(Metadata metadata, boolean is_join, List<MeasureType> query_measures) {
+QueryResults queryColumn(Metadata metadata, boolean is_join, List<MeasureType> query_measures) {
     QueryResults results = new QueryResults(new ArrayList<>());
     if (MeasureType.onlyWordNet(query_measures))
         results.addAll(onlyWordNetQuery(metadata, query_measures, is_join));
@@ -593,7 +517,7 @@ Now, if we wish to only find similar columns based on the WordNet similarity mea
     \end{algorithmic}
 \end{algorithm}
 
-On the other hand, if a column is only queried based on only certain LSH indexes, the algorithm differs slightly (algorithm \ref{alg:onlyLSH}). First, from each index that needs to be queried, the candidates are retrieved, unioned, and filtered for only similar data types. To keep track of which candidates are from which index, we map the measure type to its respective candidates. Then, for each candidate from the union set, the score from the all indexes that take part in the query are returned. If a column is a candidate in one index A but not in the other index B, then we set the score of that column coming from index B to be 0. After that, the algorithm works the same as algorithm \ref{alg:onlyWordnet}.
+On the other hand, if a column is only queried based on only certain LSH indexes, the algorithm differs slightly (algorithm \ref{alg:onlyLSH}). First, from each index that needs to be queried, the candidates are retrieved, unioned, and filtered for only similar data types. Here, we perform an union on the different candidates and not an intersection as not to filter out any potential matches, since a candidate with zero score in one index but a high score in another one may make it above the threshold. To keep track of which candidates are from which index, we map the measure type to its respective candidates. Then, for each candidate from the union set, the score from the all indexes that take part in the query are returned. If a column is a candidate in one index A but not in the other index B, then we set the score of that column coming from index B to be 0. After that, the algorithm works the same as algorithm \ref{alg:onlyWordnet}.
 
 \begin{algorithm}
     \caption{Query columns based only on LSH indexes}

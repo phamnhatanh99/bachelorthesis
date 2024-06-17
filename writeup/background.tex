@@ -32,11 +32,11 @@ In order to capture the semantic relatedness between two words, we use the machi
 
 \[sim_{wordnet}(s, t) = 2 \cdot \frac{depth(LCS)}{(depth(s) + depth(t))}\]
 
-To extend the similarity of two words to two sets of words / sentences \(q_i\) and \(q_j\), we use the equation from \cite{wordnetSim}:
+To extend the similarity of two words to two sets of words / sentences \(q_i\) and \(q_j\), we use an equation similar to ones from \cite{wordnetSim} and \cite{cupid}:
 
 \[score(q_i, q_j) = \frac{\Sigma_{s \in q_i} sim_m(s, q_j) +\Sigma_{s \in q_j} sim_m(s, q_i)}{|q_i| + |q_j|}\]
 
-where \(sim_m(s, q_j\) is the similarity score of s and the word in \(q_j\) that has the highest similarity score. If a word does not exist in the dictionary, we fall back to edit distance similarity for the calculation.
+where \(sim_m(s, q_j\) is the similarity score of s and the word in \(q_j\) that has the highest similarity score. If a word does not exist in the dictionary, we fall back to Levenshtein distance similarity for the calculation.
 
 \subsection{Jaccard Similarity}\label{js}
 
@@ -94,9 +94,9 @@ The advantage of this measure compared to Levenshtein distance similarity is, th
 
 \section{MinHash Sketch}
 
-When a set size goes to the degree of thousands of elements or higher, calculating the Jaccard coefficient/containment of two sets can become computationally very expensive. Instead, we transform the sets into smaller representations called "sketches" and calculate the similarity measures only using these sketches. \cite{miningOfMassiveDatasets}. One of these types of sketches is called MinHash. 
+When a set size goes to the degree of thousands of elements or higher, calculating the Jaccard coefficient/containment of two sets can become computationally very expensive. Instead, we transform the sets into smaller, fixed-size representations called "sketches" and calculate the similarity measures using only these sketches \cite{miningOfMassiveDatasets}. One of these types of sketches is called MinHash.
 
-When a set size goes to the degree of thousands of elements or higher, calculating the Jaccard coefficient/containment of two sets can become computationally very expensive. Instead, we transform the sets into smaller, fixed-size representations called "sketches" and calculate the similarity measures only using these sketches \cite{miningOfMassiveDatasets}. One of these types of sketches is called MinHash. The core idea behind MinHash is to apply a hash function to the elements of a set, simulating a random permutation, and then store the minimum hash value observed. By doing this multiple times with different hash functions, we create a set of minimum values that serves as a compact representation of the original set. The interesting property of MinHash is that, the probability of 2 sets having the same minimum hash value when applied the same hash function is directly related to the Jaccard coefficient between two sets:
+The core idea behind MinHash is to apply a hash function to the elements of a set, simulating a random permutation, and then store the minimum hash value observed. By doing this multiple times with different hash functions, we create a set of minimum values that serves as a compact representation of the original set. The interesting property of MinHash is that, the probability of 2 sets having the same minimum hash value when applied the same hash function is directly related to the Jaccard coefficient between two sets:
 
 \[Pr[h_{min}(A) = h_{min}(B)] = \frac{|A \cap B|}{|A \cup B|} = J(A, B)\]
 
@@ -121,7 +121,7 @@ In literature, the way a MinHash sketch in hashed into a LSH index is by first d
 \label{fig:lsh}
 \end{figure}
 
-\section{Rest API}
+\section{REST API}
 
 Representational State Transfer (REST) is a term coined by Fielder in his PhD dissertation \cite{rest}. It is a software architectural style that defines a set of constraints on how the components of a distributed hypermedia system like in Web should communicate with each other. Rest API is an application programming interface (API) that adheres to the constraints of REST architectural style. While there are six constraints that Fielder introduced in his work, the three most important constraints for our work are:
 
